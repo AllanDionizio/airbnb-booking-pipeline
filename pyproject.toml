@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "airbnb-booking-pipeline"
 version = "0.1.0"
-description = "Ingests Airbnb host emails (bookings and cancellations) into Postgres, idempotently, with a quarantine queue."
+description = "Airbnb host emails (bookings and cancellations) to Postgres."
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "MIT" }
