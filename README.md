@@ -2,7 +2,7 @@
 
 > 🚧 Work in progress. This README grows with the code and only describes what is already in the repo.
 
-**Goal:** read Airbnb host emails (booking confirmations and cancellations), parse them and load them into Postgres. For now the repo holds only the project scaffolding (packaging, lint, tests, CI).
+**Goal:** read Airbnb host emails (booking confirmations and cancellations), parse them and load them into Postgres. So far the repo holds the project scaffolding (packaging, lint, tests, CI) and the two email parsers in [`src/airbnb_booking_pipeline/parsers/`](src/airbnb_booking_pipeline/parsers/): booking confirmations and cancellations.
 
 ## Development
 
