@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+.ruff_cache/
+
+# Secrets: never commit
+.env
+.env.*
+!.env.example
+credentials.json
+token.json
+*.json.key
+service-account*.json
+
+# Real emails never go to git; synthetic samples live in tests/fixtures and data/sample_inbox
+data/real/
+data/dump/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
