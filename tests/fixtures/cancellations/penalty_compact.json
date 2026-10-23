@@ -1,0 +1,13 @@
+{
+  "scenario": "penalty_compact",
+  "description": "Penalty written 'R$315,40', with the 'Emitir reembolso integral' button below it.",
+  "subject": "Cancelado: reserva HMTEST2001 de 4 de set. – 7 de set. de 2026",
+  "email_date": "2026-08-12T14:30:00-03:00",
+  "body": "RESERVA CANCELADA\n\nhttps://www.airbnb.com.br/rooms/900002?source_impression_id=email   Studio Boreal 202\n\nAnúncio n° 900002\n\n4 de set. – 7 de set., 2 hóspedes\n\nInfelizmente, o seu hóspede, Guest November, precisou\ncancelar a reserva HMTEST2001 de 4 de set. – 7 de set.. Seu\ncalendário foi atualizado, e essas datas agora estão\ndisponíveis.\n\nConforme sua política de cancelamento, seu recebimento foi\natualizado para R$315,40.\n\nEste pagamento será liberado 24 horas após a data do\ncheck-in. É possível visualizar o pagamento atualizado em\nseu Histórico de Transações.\n\nVocê também pode emitir o reembolso no valor total para o\nusuário clicando no botão abaixo.\n\nEmitir reembolso integral\n\nTem alguma dúvida? Confira mais informações sobre como\nfunciona quando um hóspede cancela.\n",
+  "expected": {
+    "confirmation_code": "HMTEST2001",
+    "outcome": "penalty",
+    "penalty_amount": 315.4,
+    "currency": "BRL"
+  }
+}

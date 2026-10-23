@@ -1,0 +1,13 @@
+{
+  "scenario": "penalty_nbsp",
+  "description": "Penalty written 'R$\\xa0287,15' (the newer format).",
+  "subject": "Cancelado: reserva HMTEST2002 de 18 de set. – 21 de set. de 2026",
+  "email_date": "2026-08-20T18:05:00-03:00",
+  "body": "RESERVA CANCELADA\n\nhttps://www.airbnb.com.br/rooms/900004?source_impression_id=email   Apartamento Duna 304\n\nAnúncio n° 900004\n\n18 de set. – 21 de set., 3 hóspedes\n\nInfelizmente, o seu hóspede, Guest Oscar, precisou cancelar\na reserva HMTEST2002 de 18 de set. – 21 de set.. Seu\ncalendário foi atualizado, e essas datas agora estão\ndisponíveis.\n\nConforme sua política de cancelamento, seu recebimento foi\natualizado para R$ 287,15.\n\nEste pagamento será liberado 24 horas após a data do\ncheck-in. É possível visualizar o pagamento atualizado em\nseu Histórico de Transações.\n\nVocê também pode emitir o reembolso no valor total para o\nusuário clicando no botão abaixo.\n\nEmitir reembolso integral\n\nTem alguma dúvida? Confira mais informações sobre como\nfunciona quando um hóspede cancela.\n",
+  "expected": {
+    "confirmation_code": "HMTEST2002",
+    "outcome": "penalty",
+    "penalty_amount": 287.15,
+    "currency": "BRL"
+  }
+}

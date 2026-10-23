@@ -1,0 +1,13 @@
+{
+  "scenario": "full_refund",
+  "description": "The guest got a full refund: no amount and no refund button.",
+  "subject": "Cancelado: reserva HMTEST2004 de 14 de ago. – 16 de ago. de 2026",
+  "email_date": "2026-07-29T08:15:00-03:00",
+  "body": "RESERVA CANCELADA\n\nhttps://www.airbnb.com.br/rooms/900001?source_impression_id=email   Loft Aurora 101\n\nAnúncio n° 900001\n\n14 de ago. – 16 de ago., 1 hóspede\n\nInfelizmente, o seu hóspede, Guest Quebec, precisou cancelar\na reserva HMTEST2004 de 14 de ago. – 16 de ago.. Seu\ncalendário foi atualizado, e essas datas agora estão\ndisponíveis.\n\nConforme sua política de cancelamento, o hóspede recebeu um\nreembolso integral.\n\nTem alguma dúvida? Confira mais informações sobre como\nfunciona quando um hóspede cancela.\n",
+  "expected": {
+    "confirmation_code": "HMTEST2004",
+    "outcome": "full_refund",
+    "penalty_amount": null,
+    "currency": "BRL"
+  }
+}

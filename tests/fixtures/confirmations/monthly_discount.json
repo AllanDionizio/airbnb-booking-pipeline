@@ -1,0 +1,23 @@
+{
+  "scenario": "monthly_discount",
+  "description": "Four-week stay with a 'Desconto mensal' line.",
+  "subject": "Reserva confirmada - Guest Golf chega em 5 de jun.",
+  "email_date": "2026-05-19T09:00:00-03:00",
+  "body": "Nova reserva confirmada! Guest Golf chega em 5 de jun.\n\nEnvie uma mensagem para confirmar os detalhes do check-in ou\npara dar as boas-vindas.\n\nhttps://www.airbnb.com.br/rooms/900006?source_impression_id=email\n\nFlat Fênix 606\n\nCasa/apto inteiro\n\nCheck-in           Checkout\n                   \nsex., 5 de jun.    sex., 3 de jul.\n                   \n15:00              11:00\n\nHÓSPEDES\n\n2 adultos\n\nCÓDIGO DE CONFIRMAÇÃO\nHMTEST1007\n\nO HÓSPEDE PAGOU\n\nR$170,00 x 28 noites   R$4.760,00\n\nTaxa de limpeza   R$130,00\n\nTaxa de serviço do hóspede   R$666,40\n\nTOTAL (BRL)   R$5.556,40\n\nPAGAMENTO DO ANFITRIÃO\n\nPreço da acomodação para 28 noites   R$4.760,00\n\nTaxa de limpeza   R$130,00\n\nDesconto mensal   -R$952,00\n\nTaxa de serviço do anfitrião (4.0% + IVA)   -R$169,34\n\nVOCÊ RECEBE   R$3.768,66\n\nO processamento do pagamento pode levar algum tempo.\n\nCANCELAMENTOS\nSua política de cancelamento para os hóspedes é Moderada\n",
+  "expected": {
+    "confirmation_code": "HMTEST1007",
+    "guest_name": "Guest Golf",
+    "check_in": "2026-06-05",
+    "check_out": "2026-07-03",
+    "num_guests": 2,
+    "listing_name": "Flat Fênix 606",
+    "currency": "BRL",
+    "payout_lines": {
+      "accommodation": 4760.0,
+      "cleaning_fee": 130.0,
+      "discount": 952.0,
+      "host_service_fee": 169.34
+    },
+    "host_payout": 3768.66
+  }
+}
