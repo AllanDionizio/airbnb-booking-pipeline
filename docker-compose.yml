@@ -1,0 +1,23 @@
+# Local Postgres for development and the integration tests.
+# The SQL in sql/ runs once, when the volume is first created; `make db-reset`
+# starts over from an empty database.
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: pipeline
+      POSTGRES_PASSWORD: pipeline  # local only
+      POSTGRES_DB: bookings
+    ports:
+      - "5433:5432"  # 5433 on the host, to stay clear of a local Postgres
+    volumes:
+      - ./sql:/docker-entrypoint-initdb.d:ro
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pipeline -d bookings"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+
+volumes:
+  pgdata:
