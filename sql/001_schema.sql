@@ -127,3 +127,40 @@ create table pipeline.processed_messages (
     review_id     bigint references pipeline.booking_review_queue,
     processed_at  timestamptz not null default now()
 );
+
+
+-- One row per cancellation email. The pipeline never cancels anything: it
+-- records the event and points it at the booking (or the review-queue item)
+-- it concerns, and a person confirms the cancellation. Rows never change
+-- after insert, so message_id doubles as the idempotency key.
+create table pipeline.cancellation_events (
+    event_id           bigint generated always as identity primary key,
+    message_id         text not null unique,
+    platform           text not null,
+    confirmation_code  text not null,
+    outcome            text not null
+                       check (outcome in ('full_refund', 'penalty', 'undetermined')),
+    -- The penalty as the email states it, and in BRL. Both null without one.
+    penalty_amount     numeric(12,2) check (penalty_amount > 0),
+    currency           text check (currency in ('BRL', 'USD')),
+    penalty_brl        numeric(12,2),
+    fx_rate            numeric(10,4),
+    fx_quoted_on       date,
+    fx_source          text check (fx_source in ('ptax', 'fallback')),
+    -- What the email was matched to, and what was done about it
+    target             text not null
+                       check (target in ('booking', 'review_item', 'already_cancelled', 'not_found')),
+    booking_id         bigint references pipeline.bookings,
+    review_id          bigint references pipeline.booking_review_queue,
+    created_at         timestamptz not null default now(),
+
+    check ((outcome = 'penalty') = (penalty_amount is not null)),
+    check ((penalty_amount is null) = (currency is null and penalty_brl is null)),
+    -- A USD penalty carries the rate it was converted with; anything else none
+    check (
+        coalesce(currency = 'USD', false)
+        = (fx_rate is not null and fx_quoted_on is not null and fx_source is not null)
+    ),
+    check ((target in ('booking', 'already_cancelled')) = (booking_id is not null)),
+    check ((target = 'review_item') = (review_id is not null))
+);
