@@ -1,4 +1,4 @@
-.PHONY: setup lint format test
+.PHONY: setup lint format test fixtures
 
 # Use the project's virtualenv when there is one, activated or not (CI
 # installs into its own Python and has none)
@@ -19,3 +19,6 @@ format:
 
 test:
 	pytest -q
+
+fixtures:
+	python -m airbnb_booking_pipeline.synthetic tests/fixtures
