@@ -52,8 +52,14 @@ def build_fixtures() -> dict[str, str]:
 
 
 def write_fixtures(root: Path) -> list[Path]:
+    """Write every fixture and delete the ones whose scenario no longer exists."""
+    files = build_fixtures()
+    for path in root.rglob("*.json"):
+        if path.relative_to(root).as_posix() not in files:
+            path.unlink()
+
     written = []
-    for relative, contents in build_fixtures().items():
+    for relative, contents in files.items():
         path = root / relative
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(contents, encoding="utf-8")

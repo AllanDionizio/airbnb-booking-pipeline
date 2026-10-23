@@ -5,6 +5,7 @@ import re
 import pytest
 
 from airbnb_booking_pipeline.synthetic import LISTINGS, format_money, render_cancellation
+from airbnb_booking_pipeline.synthetic.fixtures import write_fixtures
 from airbnb_booking_pipeline.synthetic.scenarios import CANCELLATIONS, CONFIRMATIONS
 
 SPECS = [sc.spec for sc in (*CONFIRMATIONS, *CANCELLATIONS)]
@@ -46,3 +47,15 @@ def test_penalty_emails_carry_the_full_refund_button(scenario):
 
     # The trap the cancellation parser has to survive
     assert ("Emitir reembolso integral" in body) == (scenario.spec.penalty is not None)
+
+
+def test_write_fixtures_removes_fixtures_of_renamed_scenarios(tmp_path):
+    stale = tmp_path / "confirmations" / "old_name.json"
+    stale.parent.mkdir()
+    stale.write_text("{}", encoding="utf-8")
+
+    written = write_fixtures(tmp_path)
+
+    assert not stale.exists()
+    assert sorted(written) == sorted(tmp_path.rglob("*.json"))
+    assert len(written) == 18
