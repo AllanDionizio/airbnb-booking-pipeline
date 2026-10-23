@@ -1,7 +1,7 @@
 """Hand-written cases for the confirmation parser.
 
-The bodies keep only the parts of the real template the parser reads. The
-full synthetic regression fixtures come with the email generator.
+The bodies keep only the parts of the template the parser reads. Full
+synthetic emails, one per layout variant, are in tests/fixtures/.
 """
 
 from datetime import date, datetime
