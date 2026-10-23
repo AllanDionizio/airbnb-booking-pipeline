@@ -54,7 +54,9 @@ class CancellationNotice:
     confirmation_code: str
     outcome: CancellationOutcome
     penalty_amount: float | None  # in `currency`; None when there is no penalty
-    currency: str  # "BRL" or "USD"
+    # "BRL" or "USD", the currency of the penalty. None when there is no
+    # amount: the email does not say, and the booking already knows.
+    currency: str | None
 
     def to_dict(self) -> dict:
         d = asdict(self)
@@ -98,5 +100,5 @@ def parse_cancellation(body_text: str, subject: str | None = None) -> Cancellati
         else CancellationOutcome.UNDETERMINED
     )
     return CancellationNotice(
-        confirmation_code=code, outcome=outcome, penalty_amount=None, currency="BRL"
+        confirmation_code=code, outcome=outcome, penalty_amount=None, currency=None
     )

@@ -38,7 +38,7 @@ class CancellationScenario:
     spec: CancellationSpec
     expected_outcome: str
     expected_penalty: float | None
-    expected_currency: str
+    expected_currency: str | None
 
 
 CONFIRMATIONS: tuple[ConfirmationScenario, ...] = (
@@ -426,7 +426,7 @@ CANCELLATIONS: tuple[CancellationScenario, ...] = (
         ),
         "full_refund",
         None,
-        "BRL",
+        None,
     ),
     CancellationScenario(
         "full_refund_no_subject",
@@ -444,6 +444,6 @@ CANCELLATIONS: tuple[CancellationScenario, ...] = (
         ),
         "full_refund",
         None,
-        "BRL",
+        None,
     ),
 )
