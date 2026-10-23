@@ -1,14 +1,14 @@
-"""The upsert_booking payload, built without a database."""
+"""The upsert_booking and register_cancellation payloads, built without a database."""
 
 from datetime import date
 
 import pytest
 
 from airbnb_booking_pipeline.enrich import FxRate, convert_booking
-from airbnb_booking_pipeline.load import LoadResult, booking_payload
-from airbnb_booking_pipeline.parsers import parse_confirmation
-from airbnb_booking_pipeline.synthetic import render_confirmation
-from airbnb_booking_pipeline.synthetic.scenarios import CONFIRMATIONS
+from airbnb_booking_pipeline.load import LoadResult, booking_payload, cancellation_payload
+from airbnb_booking_pipeline.parsers import parse_cancellation, parse_confirmation
+from airbnb_booking_pipeline.synthetic import render_cancellation, render_confirmation
+from airbnb_booking_pipeline.synthetic.scenarios import CANCELLATIONS, CONFIRMATIONS
 
 FX = FxRate(rate=5.1234, quoted_on=date(2026, 7, 1), source="ptax")
 
@@ -55,3 +55,34 @@ def test_usd_booking_must_be_converted_first():
 )
 def test_needs_review_only_for_queued_results(code, needs_review):
     assert LoadResult(code=code, message="").needs_review is needs_review
+
+
+def parsed_cancellation(name):
+    scenario = next(sc for sc in CANCELLATIONS if sc.name == name)
+    email = render_cancellation(scenario.spec)
+    return parse_cancellation(email.body, subject=email.subject)
+
+
+def test_cancellation_payload():
+    payload = cancellation_payload(parsed_cancellation("penalty_compact"), message_id="msg-1")
+
+    assert payload == {
+        "message_id": "msg-1",
+        "platform": "airbnb",
+        "confirmation_code": "HMTEST2001",
+        "outcome": "penalty",
+        "penalty_amount": 315.4,
+        "currency": "BRL",
+        "fx": None,
+    }
+
+
+def test_full_refund_payload_has_no_amount_and_ignores_a_rate():
+    payload = cancellation_payload(parsed_cancellation("full_refund"), message_id="msg-1", fx=FX)
+
+    assert (payload["penalty_amount"], payload["currency"], payload["fx"]) == (None, None, None)
+
+
+def test_usd_penalty_needs_a_rate():
+    with pytest.raises(ValueError, match="rate"):
+        cancellation_payload(parsed_cancellation("penalty_usd"), message_id="msg-1")

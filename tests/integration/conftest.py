@@ -14,12 +14,24 @@ from pathlib import Path
 import psycopg
 import pytest
 
-from airbnb_booking_pipeline.parsers import BookingConfirmation, parse_confirmation
-from airbnb_booking_pipeline.synthetic import render_confirmation
-from airbnb_booking_pipeline.synthetic.scenarios import CONFIRMATIONS
+from airbnb_booking_pipeline.parsers import (
+    BookingConfirmation,
+    CancellationNotice,
+    parse_cancellation,
+    parse_confirmation,
+)
+from airbnb_booking_pipeline.synthetic import render_cancellation, render_confirmation
+from airbnb_booking_pipeline.synthetic.scenarios import CANCELLATIONS, CONFIRMATIONS
 
 SQL_DIR = Path(__file__).parents[2] / "sql"
-TABLES = ["processed_messages", "booking_review_queue", "bookings", "owner_contracts", "listings"]
+TABLES = [
+    "cancellation_events",
+    "processed_messages",
+    "booking_review_queue",
+    "bookings",
+    "owner_contracts",
+    "listings",
+]
 
 
 @pytest.fixture(scope="session")
@@ -82,5 +94,17 @@ def synthetic_booking():
         email = render_confirmation(scenario.spec)
         booking = parse_confirmation(email.body, subject=email.subject, email_date=email.email_date)
         return replace(booking, **changes)
+
+    return build
+
+
+@pytest.fixture
+def synthetic_cancellation():
+    """Parse a synthetic cancellation by scenario name, then apply `changes`."""
+
+    def build(name: str, **changes) -> CancellationNotice:
+        scenario = next(sc for sc in CANCELLATIONS if sc.name == name)
+        email = render_cancellation(scenario.spec)
+        return replace(parse_cancellation(email.body, subject=email.subject), **changes)
 
     return build

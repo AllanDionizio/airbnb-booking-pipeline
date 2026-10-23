@@ -1,5 +1,19 @@
 """Loading parsed emails into Postgres."""
 
-from .postgres import LoadResult, booking_payload, upsert_booking
+from .postgres import (
+    CancellationResult,
+    LoadResult,
+    booking_payload,
+    cancellation_payload,
+    register_cancellation,
+    upsert_booking,
+)
 
-__all__ = ["LoadResult", "booking_payload", "upsert_booking"]
+__all__ = [
+    "CancellationResult",
+    "LoadResult",
+    "booking_payload",
+    "cancellation_payload",
+    "register_cancellation",
+    "upsert_booking",
+]

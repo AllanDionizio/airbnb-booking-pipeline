@@ -57,7 +57,7 @@ def test_full_refund():
         "confirmation_code": "HMTEST0002",
         "outcome": "full_refund",
         "penalty_amount": None,
-        "currency": "BRL",
+        "currency": None,
     }
 
 
@@ -74,6 +74,7 @@ def test_unrecognized_money_sentence_is_undetermined_not_an_error():
 
     assert notice.outcome is CancellationOutcome.UNDETERMINED
     assert notice.penalty_amount is None
+    assert notice.currency is None  # no amount, so no currency to report
 
 
 def test_missing_confirmation_code_is_an_error():

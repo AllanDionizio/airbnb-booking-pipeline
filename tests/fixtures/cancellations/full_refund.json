@@ -8,6 +8,6 @@
     "confirmation_code": "HMTEST2004",
     "outcome": "full_refund",
     "penalty_amount": null,
-    "currency": "BRL"
+    "currency": null
   }
 }
