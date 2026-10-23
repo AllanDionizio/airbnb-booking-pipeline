@@ -1,0 +1,22 @@
+{
+  "scenario": "crosses_new_year",
+  "description": "Check-in in December without a year, checkout in January with one.",
+  "subject": "Reserva confirmada - Guest Mike chega em 28 de dez.",
+  "email_date": "2026-12-02T09:00:00-03:00",
+  "body": "Nova reserva confirmada! Guest Mike chega em 28 de dez.\n\nEnvie uma mensagem para confirmar os detalhes do check-in ou\npara dar as boas-vindas.\n\nhttps://www.airbnb.com.br/rooms/900003?source_impression_id=email\n\nCasa Cedro\n\nCasa/apto inteiro\n\nCheck-in           Checkout\n                   \nseg., 28 de dez.   sáb., 2 de jan. de 2027\n                   \n15:00              11:00\n\nHÓSPEDES\n\n2 adultos\n\nCÓDIGO DE CONFIRMAÇÃO\nHMTEST1013\n\nO HÓSPEDE PAGOU\n\nR$290,00 x 5 noites   R$1.450,00\n\nTaxa de limpeza   R$110,00\n\nTaxa de serviço do hóspede   R$203,00\n\nTOTAL (BRL)   R$1.763,00\n\nPAGAMENTO DO ANFITRIÃO\n\nPreço da acomodação para 5 noites   R$1.450,00\n\nTaxa de limpeza   R$110,00\n\nTaxa de serviço do anfitrião (4.0% + IVA)   -R$66,61\n\nVOCÊ RECEBE   R$1.493,39\n\nO processamento do pagamento pode levar algum tempo.\n\nCANCELAMENTOS\nSua política de cancelamento para os hóspedes é Moderada\n",
+  "expected": {
+    "confirmation_code": "HMTEST1013",
+    "guest_name": "Guest Mike",
+    "check_in": "2026-12-28",
+    "check_out": "2027-01-02",
+    "num_guests": 2,
+    "listing_name": "Casa Cedro",
+    "currency": "BRL",
+    "payout_lines": {
+      "accommodation": 1450.0,
+      "cleaning_fee": 110.0,
+      "host_service_fee": 66.61
+    },
+    "host_payout": 1493.39
+  }
+}

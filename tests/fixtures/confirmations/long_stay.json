@@ -1,0 +1,23 @@
+{
+  "scenario": "long_stay",
+  "description": "Two weeks across a month boundary with a negative nightly adjustment.",
+  "subject": "Reserva confirmada - Guest India chega em 26 de mai.",
+  "email_date": "2026-05-06T09:00:00-03:00",
+  "body": "Nova reserva confirmada! Guest India chega em 26 de mai.\n\nEnvie uma mensagem para confirmar os detalhes do check-in ou\npara dar as boas-vindas.\n\nhttps://www.airbnb.com.br/rooms/900004?source_impression_id=email\n\nApartamento Duna 304\n\nCasa/apto inteiro\n\nCheck-in           Checkout\n                   \nter., 26 de mai.   ter., 9 de jun.\n                   \n15:00              11:00\n\nHÓSPEDES\n\n2 adultos\n\nCÓDIGO DE CONFIRMAÇÃO\nHMTEST1009\n\nO HÓSPEDE PAGOU\n\nR$170,00 x 14 noites   R$2.380,00\n\nTaxa de limpeza   R$120,00\n\nTaxa de serviço do hóspede   R$333,20\n\nTOTAL (BRL)   R$2.833,20\n\nPAGAMENTO DO ANFITRIÃO\n\nPreço da acomodação para 14 noites   R$2.380,00\n\nTaxa de limpeza   R$120,00\n\nAjuste de preço por noite   -R$84,00\n\nTaxa de serviço do anfitrião (4.0% + IVA)   -R$86,83\n\nVOCÊ RECEBE   R$2.329,17\n\nO processamento do pagamento pode levar algum tempo.\n\nCANCELAMENTOS\nSua política de cancelamento para os hóspedes é Moderada\n",
+  "expected": {
+    "confirmation_code": "HMTEST1009",
+    "guest_name": "Guest India",
+    "check_in": "2026-05-26",
+    "check_out": "2026-06-09",
+    "num_guests": 2,
+    "listing_name": "Apartamento Duna 304",
+    "currency": "BRL",
+    "payout_lines": {
+      "accommodation": 2380.0,
+      "cleaning_fee": 120.0,
+      "discount": 84.0,
+      "host_service_fee": 86.83
+    },
+    "host_payout": 2329.17
+  }
+}

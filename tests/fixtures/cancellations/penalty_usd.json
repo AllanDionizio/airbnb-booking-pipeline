@@ -1,0 +1,13 @@
+{
+  "scenario": "penalty_usd",
+  "description": "USD penalty: '$\\xa01.418,70\\xa0USD', where the suffix decides the currency.",
+  "subject": "Cancelado: reserva HMTEST2003 de 4 de mai. – 22 de jun. de 2026",
+  "email_date": "2026-04-10T11:45:00-03:00",
+  "body": "RESERVA CANCELADA\n\nhttps://www.airbnb.com.br/rooms/900005?source_impression_id=email   Studio Eclipse 505\n\nAnúncio n° 900005\n\n4 de mai. – 22 de jun., 2 hóspedes\n\nInfelizmente, o seu hóspede, Guest Papa, precisou cancelar a\nreserva HMTEST2003 de 4 de mai. – 22 de jun.. Seu calendário\nfoi atualizado, e essas datas agora estão disponíveis.\n\nConforme sua política de cancelamento, seu recebimento foi\natualizado para $ 1.418,70 USD.\n\nEste pagamento será liberado 24 horas após a data do\ncheck-in. É possível visualizar o pagamento atualizado em\nseu Histórico de Transações.\n\nVocê também pode emitir o reembolso no valor total para o\nusuário clicando no botão abaixo.\n\nEmitir reembolso integral\n\nTem alguma dúvida? Confira mais informações sobre como\nfunciona quando um hóspede cancela.\n",
+  "expected": {
+    "confirmation_code": "HMTEST2003",
+    "outcome": "penalty",
+    "penalty_amount": 1418.7,
+    "currency": "USD"
+  }
+}

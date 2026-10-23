@@ -1,0 +1,13 @@
+{
+  "scenario": "full_refund_no_subject",
+  "description": "No subject header: the code comes from the wrapped body sentence.",
+  "subject": null,
+  "email_date": "2026-06-02T16:50:00-03:00",
+  "body": "RESERVA CANCELADA\n\nhttps://www.airbnb.com.br/rooms/900006?source_impression_id=email   Flat Fênix 606\n\nAnúncio n° 900006\n\n19 de jun. – 21 de jun., 2 hóspedes\n\nInfelizmente, o seu hóspede, Guest Romeo, precisou cancelar\na reserva HMTEST2005 de 19 de jun. – 21 de jun.. Seu\ncalendário foi atualizado, e essas datas agora estão\ndisponíveis.\n\nConforme sua política de cancelamento, o hóspede recebeu um\nreembolso integral.\n\nTem alguma dúvida? Confira mais informações sobre como\nfunciona quando um hóspede cancela.\n",
+  "expected": {
+    "confirmation_code": "HMTEST2005",
+    "outcome": "full_refund",
+    "penalty_amount": null,
+    "currency": "BRL"
+  }
+}

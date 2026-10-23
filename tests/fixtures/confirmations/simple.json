@@ -1,0 +1,22 @@
+{
+  "scenario": "simple",
+  "description": "Two nights, short-stay cleaning fee, service fee. The baseline layout.",
+  "subject": "Reserva confirmada - Guest Alpha chega em 12 de jun.",
+  "email_date": "2026-05-20T09:00:00-03:00",
+  "body": "Nova reserva confirmada! Guest Alpha chega em 12 de jun.\n\nEnvie uma mensagem para confirmar os detalhes do check-in ou\npara dar as boas-vindas.\n\nhttps://www.airbnb.com.br/rooms/900001?source_impression_id=email\n\nLoft Aurora 101\n\nCasa/apto inteiro\n\nCheck-in           Checkout\n                   \nsex., 12 de jun.   dom., 14 de jun.\n                   \n15:00              11:00\n\nHÓSPEDES\n\n2 adultos\n\nCÓDIGO DE CONFIRMAÇÃO\nHMTEST1001\n\nO HÓSPEDE PAGOU\n\nR$240,00 x 2 noites   R$480,00\n\nTaxa de limpeza para estadias curtas   R$90,00\n\nTaxa de serviço do hóspede   R$67,20\n\nTOTAL (BRL)   R$637,20\n\nPAGAMENTO DO ANFITRIÃO\n\nPreço da acomodação para 2 noites   R$480,00\n\nTaxa de limpeza para estadias curtas   R$90,00\n\nTaxa de serviço do anfitrião (4.0% + IVA)   -R$23,94\n\nVOCÊ RECEBE   R$546,06\n\nO processamento do pagamento pode levar algum tempo.\n\nCANCELAMENTOS\nSua política de cancelamento para os hóspedes é Moderada\n",
+  "expected": {
+    "confirmation_code": "HMTEST1001",
+    "guest_name": "Guest Alpha",
+    "check_in": "2026-06-12",
+    "check_out": "2026-06-14",
+    "num_guests": 2,
+    "listing_name": "Loft Aurora 101",
+    "currency": "BRL",
+    "payout_lines": {
+      "accommodation": 480.0,
+      "cleaning_fee": 90.0,
+      "host_service_fee": 23.94
+    },
+    "host_payout": 546.06
+  }
+}
