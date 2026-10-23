@@ -11,6 +11,7 @@ the database gets them.
 from dataclasses import dataclass
 
 import psycopg
+from psycopg import sql
 from psycopg.types.json import Jsonb
 
 from ..enrich import FxRate
@@ -60,7 +61,8 @@ def _call(conn: psycopg.Connection, function: str, payload: dict) -> dict:
     if not conn.autocommit:
         raise ValueError("Use an autocommit connection: each email is committed on its own")
     with conn.transaction():
-        row = conn.execute(f"select pipeline.{function}(%s)", [Jsonb(payload)]).fetchone()
+        query = sql.SQL("select pipeline.{}(%s)").format(sql.Identifier(function))
+        row = conn.execute(query, [Jsonb(payload)]).fetchone()
     return row[0]
 
 
