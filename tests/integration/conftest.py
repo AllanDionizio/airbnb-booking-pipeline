@@ -45,7 +45,7 @@ def conn(schema, database_url):
     with psycopg.connect(database_url, autocommit=True) as setup:
         tables = ", ".join(f"pipeline.{table}" for table in TABLES)
         setup.execute(f"truncate {tables} restart identity cascade")
-    with psycopg.connect(database_url) as conn:
+    with psycopg.connect(database_url, autocommit=True) as conn:
         yield conn
 
 

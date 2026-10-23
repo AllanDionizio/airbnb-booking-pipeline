@@ -74,7 +74,15 @@ def upsert_booking(
     message_id: str,
     fx: FxRate | None = None,
 ) -> LoadResult:
-    """Load one booking in its own transaction and return what the database did."""
+    """
+    Load one booking in its own transaction and return what the database did.
+
+    `conn` must be in autocommit mode. On a connection with a transaction
+    already open, conn.transaction() would only open a savepoint, and the
+    booking would stay uncommitted until the caller committed.
+    """
+    if not conn.autocommit:
+        raise ValueError("Use an autocommit connection: each booking is committed on its own")
     payload = booking_payload(booking, message_id=message_id, fx=fx)
     with conn.transaction():
         row = conn.execute("select pipeline.upsert_booking(%s)", [Jsonb(payload)]).fetchone()

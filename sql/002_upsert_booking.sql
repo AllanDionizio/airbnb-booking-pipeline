@@ -95,8 +95,10 @@ begin
     begin
         v_check_in := (p->>'check_in')::date;
         v_check_out := (p->>'check_out')::date;
+        perform (p->>'num_guests')::integer;
+        perform value::numeric from jsonb_each_text(v_lines);
     exception when others then
-        v_check_in := null;
+        v_check_in := null;  -- any bad date or number fails the check below
     end;
     if v_message_id is null or v_platform is null or v_code is null
        or nullif(btrim(p->>'guest_name'), '') is null

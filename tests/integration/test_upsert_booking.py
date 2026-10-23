@@ -230,6 +230,16 @@ def test_a_queued_email_is_queued_only_once(conn, synthetic_booking):
     assert count(conn, "booking_review_queue") == 1
 
 
+def test_the_loader_refuses_a_connection_that_would_not_commit(
+    database_url, schema, synthetic_booking
+):
+    with (
+        psycopg.connect(database_url) as conn,
+        pytest.raises(ValueError, match="autocommit"),
+    ):
+        upsert_booking(conn, synthetic_booking("simple"), message_id="msg-1")
+
+
 # --- Rejected payloads ----------------------------------------------------------
 
 
@@ -242,6 +252,8 @@ def test_a_queued_email_is_queued_only_once(conn, synthetic_booking):
         pytest.param({"payout_lines": {"accommodation": 0}}, id="no-accommodation"),
         pytest.param({"payout_lines": {"accommodation": 480, "tip": 10}}, id="unknown-line"),
         pytest.param({"original_currency": "USD"}, id="usd-without-rate"),
+        pytest.param({"payout_lines": {"accommodation": "a lot"}}, id="amount-not-a-number"),
+        pytest.param({"num_guests": "two"}, id="guests-not-a-number"),
     ],
 )
 def test_malformed_payloads_are_rejected_and_not_recorded(
