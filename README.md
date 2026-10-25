@@ -40,6 +40,30 @@ It prints how many emails ended in each code, then the ones a person has to look
 
 Every email in this repo is synthetic. A small generator in [`src/airbnb_booking_pipeline/synthetic/`](src/airbnb_booking_pipeline/synthetic/) renders Airbnb's Portuguese host email layout from a spec, using fictional listings, `Guest <NATO letter>` names, `HMTEST…` booking codes and made-up amounts. It produces the 18 regression fixtures in [`tests/fixtures/`](tests/fixtures/) (13 confirmations, 5 cancellations), one per layout variant the parsers have to handle: USD amounts, nbsp between symbol and value, stays crossing New Year, discounts and promotions, and the "full refund" button that appears in penalty emails. Each fixture stores the expected parser output, written by hand.
 
+## Demo
+
+```bash
+python -m venv .venv && source .venv/bin/activate
+make setup && make demo   # needs Docker
+```
+
+`make demo` starts Postgres from an empty volume, loads the demo listings and contracts ([`data/demo_seed.sql`](data/demo_seed.sql)) and runs the pipeline over [`data/sample_inbox/`](data/sample_inbox/): 22 synthetic emails from a few months of a host's mailbox. The inbox is built to reach every result code: bookings in BRL and USD, a double booking, a stay after its owner contract ends, a listing nobody registered, cancellations with and without a penalty, one for a booking that is still in the review queue, one for a booking older than the inbox, a payout line the parser has never seen and a guest message. The run ends with this summary:
+
+```text
+22 emails processed
+  booking       CREATED                    12
+  booking       PARSE_ERROR                 1
+  booking       QUEUED_NO_CONTRACT          1
+  booking       QUEUED_OVERLAP              1
+  booking       QUEUED_UNKNOWN_LISTING      2
+  cancellation  FLAGGED                     2
+  cancellation  FLAGGED_REVIEW_ITEM         1
+  cancellation  NOT_FOUND                   1
+  unrecognized  UNRECOGNIZED                1
+```
+
+followed by the 10 emails that need a person. Run `airbnb-pipeline run --inbox data/sample_inbox` again and every email that reached the database comes back as `ALREADY_PROCESSED`, with no new rows. The USD bookings use the live PTAX rate, so they need network access (or `USD_BRL_FALLBACK`).
+
 ## Development
 
 ```bash
@@ -48,6 +72,7 @@ make setup   # pip install -e ".[dev]" + pre-commit hooks
 make lint    # ruff check + ruff format --check
 make test    # pytest
 make fixtures  # regenerate tests/fixtures/ from the generator
+make inbox     # regenerate data/sample_inbox/ from the generator
 
 make db-up             # Postgres on localhost:5433, schema loaded from sql/
 make test-integration  # integration tests against it
