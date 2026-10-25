@@ -14,7 +14,9 @@ services:
       - ./sql:/docker-entrypoint-initdb.d:ro
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U pipeline -d bookings"]
+      # Over TCP: while the scripts in sql/ run, the image starts a temporary
+      # server on the Unix socket only, which would pass a socket check early
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U pipeline -d bookings"]
       interval: 2s
       timeout: 3s
       retries: 15
