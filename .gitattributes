@@ -1,0 +1,2 @@
+# Generated emails are compared byte for byte with the generator: no line-ending conversion
+data/sample_inbox/*.eml -text
