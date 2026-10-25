@@ -1,4 +1,4 @@
-.PHONY: setup lint format test test-integration fixtures inbox db-up db-down db-reset
+.PHONY: setup lint format test test-integration fixtures inbox demo db-up db-down db-reset
 
 # Use the project's virtualenv when there is one, activated or not (CI
 # installs into its own Python and has none)
@@ -30,6 +30,13 @@ fixtures:
 
 inbox:
 	python -m airbnb_booking_pipeline.synthetic.inbox data/sample_inbox
+
+# From an empty database: schema, demo listings, then the sample inbox.
+# Run `airbnb-pipeline run --inbox data/sample_inbox` again to see that
+# nothing loads twice.
+demo: db-reset
+	docker compose exec -T postgres psql -q -v ON_ERROR_STOP=1 -U pipeline -d bookings < data/demo_seed.sql
+	DATABASE_URL=$(DATABASE_URL) airbnb-pipeline run --inbox data/sample_inbox
 
 db-up:
 	docker compose up -d --wait
