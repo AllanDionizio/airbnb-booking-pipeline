@@ -19,6 +19,8 @@ including the quirks the parsers have to survive:
 import textwrap
 from dataclasses import dataclass
 from datetime import date, datetime
+from email.message import EmailMessage
+from email.utils import format_datetime
 
 from .listings import Listing
 
@@ -259,3 +261,16 @@ def render_cancellation(spec: CancellationSpec) -> RenderedEmail:
     return RenderedEmail(
         subject=subject, body="\n\n".join(paragraphs) + "\n", email_date=spec.email_date
     )
+
+
+def to_eml(email: RenderedEmail, message_id: str) -> bytes:
+    """Wrap a rendered email in an RFC 822 message, as a mail client would save it."""
+    msg = EmailMessage()
+    msg["From"] = "Airbnb <automated@airbnb.com>"
+    msg["To"] = "host@example.com"
+    if email.subject is not None:
+        msg["Subject"] = email.subject
+    msg["Date"] = format_datetime(email.email_date)
+    msg["Message-ID"] = message_id
+    msg.set_content(email.body)
+    return msg.as_bytes()

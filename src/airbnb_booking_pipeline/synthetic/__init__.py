@@ -16,6 +16,7 @@ from .emails import (
     format_money,
     render_cancellation,
     render_confirmation,
+    to_eml,
 )
 from .listings import LISTINGS, Listing
 
@@ -28,4 +29,5 @@ __all__ = [
     "format_money",
     "render_cancellation",
     "render_confirmation",
+    "to_eml",
 ]
