@@ -4,7 +4,8 @@ Command line: `airbnb-pipeline run --inbox DIR` (or `python -m airbnb_booking_pi
 Reads every .eml file in the inbox, runs the pipeline against the database
 in DATABASE_URL and prints a summary plus the emails that need a person.
 The exit code is 0 whenever the run finishes, attention items included: they
-are part of the normal flow, not a failure.
+are part of the normal flow, not a failure. A database error stops the run
+with exit code 1; what was loaded stays, and rerunning is safe.
 """
 
 import argparse
@@ -69,9 +70,13 @@ def main(argv: list[str] | None = None, out: TextIO = sys.stdout) -> int:
     except (FileNotFoundError, ValueError) as exc:
         parser.error(str(exc))
 
-    with psycopg.connect(args.database_url, autocommit=True) as conn:
-        pipeline = Pipeline(PostgresStore(conn), PtaxClient.from_env(), business_tz_from_env())
-        report = pipeline.run(emails)
+    try:
+        with psycopg.connect(args.database_url, autocommit=True) as conn:
+            pipeline = Pipeline(PostgresStore(conn), PtaxClient.from_env(), business_tz_from_env())
+            report = pipeline.run(emails)
+    except psycopg.Error as exc:
+        print(f"airbnb-pipeline: database error: {exc}", file=sys.stderr)
+        return 1
 
     print_report(report, out)
     return 0

@@ -1,4 +1,4 @@
-"""Command line errors that stop before touching the database."""
+"""Command line errors: bad arguments, and a database that cannot be reached."""
 
 import pytest
 
@@ -24,3 +24,10 @@ def test_a_missing_inbox_fails_before_connecting(tmp_path, capsys):
 
     assert exit_info.value.code == 2
     assert "Inbox directory not found" in capsys.readouterr().err
+
+
+def test_an_unreachable_database_exits_with_1(tmp_path, capsys):
+    exit_code = cli.main(["run", "--inbox", str(tmp_path), "--database-url", NO_DATABASE])
+
+    assert exit_code == 1
+    assert "database error" in capsys.readouterr().err
