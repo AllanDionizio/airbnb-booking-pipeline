@@ -169,3 +169,20 @@ def register_cancellation(
         booking_id=result["booking_id"],
         review_id=result["review_id"],
     )
+
+
+class PostgresStore:
+    """The pipeline's view of the database: one autocommit connection, one transaction per email."""
+
+    def __init__(self, conn: psycopg.Connection):
+        self.conn = conn
+
+    def upsert_booking(
+        self, booking: BookingConfirmation, *, message_id: str, fx: FxRate | None = None
+    ) -> LoadResult:
+        return upsert_booking(self.conn, booking, message_id=message_id, fx=fx)
+
+    def register_cancellation(
+        self, notice: CancellationNotice, *, message_id: str, fx: FxRate | None = None
+    ) -> CancellationResult:
+        return register_cancellation(self.conn, notice, message_id=message_id, fx=fx)
