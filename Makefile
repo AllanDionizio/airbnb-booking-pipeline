@@ -1,4 +1,4 @@
-.PHONY: setup lint format test test-integration fixtures db-up db-down db-reset
+.PHONY: setup lint format test test-integration fixtures inbox db-up db-down db-reset
 
 # Use the project's virtualenv when there is one, activated or not (CI
 # installs into its own Python and has none)
@@ -27,6 +27,9 @@ test-integration:
 
 fixtures:
 	python -m airbnb_booking_pipeline.synthetic tests/fixtures
+
+inbox:
+	python -m airbnb_booking_pipeline.synthetic.inbox data/sample_inbox
 
 db-up:
 	docker compose up -d --wait
