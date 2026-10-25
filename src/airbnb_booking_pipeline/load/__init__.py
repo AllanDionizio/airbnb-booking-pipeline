@@ -3,6 +3,7 @@
 from .postgres import (
     CancellationResult,
     LoadResult,
+    PostgresStore,
     booking_payload,
     cancellation_payload,
     register_cancellation,
@@ -12,6 +13,7 @@ from .postgres import (
 __all__ = [
     "CancellationResult",
     "LoadResult",
+    "PostgresStore",
     "booking_payload",
     "cancellation_payload",
     "register_cancellation",

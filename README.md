@@ -2,7 +2,7 @@
 
 > 🚧 Work in progress. This README grows with the code and only describes what is already in the repo.
 
-**Goal:** read Airbnb host emails (booking confirmations and cancellations), parse them and load them into Postgres. So far the repo holds the project scaffolding (packaging, lint, tests, CI) and the two email parsers in [`src/airbnb_booking_pipeline/parsers/`](src/airbnb_booking_pipeline/parsers/): booking confirmations and cancellations.
+**Goal:** read Airbnb host emails (booking confirmations and cancellations), parse them and load them into Postgres. The two email parsers, for booking confirmations and cancellations, live in [`src/airbnb_booking_pipeline/parsers/`](src/airbnb_booking_pipeline/parsers/).
 
 Bookings priced in USD are converted to BRL in [`src/airbnb_booking_pipeline/enrich/fx.py`](src/airbnb_booking_pipeline/enrich/fx.py) with the Banco Central do Brasil's PTAX sell rate (public Olinda API). The latest quote on or before the requested day covers weekends and holidays. If PTAX is down, an optional `USD_BRL_FALLBACK` rate is used; without it the conversion fails loudly instead of guessing.
 
@@ -21,6 +21,20 @@ Postgres 16, defined in [`sql/`](sql/) and started with Docker Compose. Bookings
 Cancellation emails go through [`pipeline.register_cancellation(jsonb)`](sql/003_register_cancellation.sql), which records each one in `cancellation_events` and matches it to its booking, or to an open review-queue item when the confirmation is still waiting there. The pipeline never cancels anything: it flags the booking, and a person confirms the cancellation from the `pending_cancellations` view. A penalty is stored as the email states it and in BRL (USD at the PTAX rate). Full refunds carry no amount and no currency.
 
 Idempotency is per email (`processed_messages` for confirmations, `cancellation_events` for cancellations), so replaying an old email never rolls back a newer update. Two exclusion constraints back the rules up: no two live bookings of a listing share a night, and no listing has two contracts in force on the same day. `host_payout` is a generated column, derived from the payout lines.
+
+## Pipeline
+
+[`pipeline.py`](src/airbnb_booking_pipeline/pipeline.py) runs each email through the same steps: route it by subject (a cancellation without a subject is recognized by its body), parse it, convert USD amounts with the PTAX rate of the day the email arrived in `BUSINESS_TZ` (default `America/Sao_Paulo`), and load it. Emails are processed oldest first, so a newer email for the same booking wins.
+
+Every email ends with a result code: the database's codes above, or one of three the pipeline sets itself when the email never reaches the database (`UNRECOGNIZED`, `PARSE_ERROR`, `FX_ERROR`). A bad email is reported and the run goes on; a database error stops the run, and rerunning is safe because every email is idempotent.
+
+Emails come from a source ([`sources/`](src/airbnb_booking_pipeline/sources/)). For now that is `LocalSource`, a directory of `.eml` files, with the `Message-ID` header as the idempotency key. The command line runs one:
+
+```bash
+airbnb-pipeline run --inbox path/to/emails   # uses $DATABASE_URL
+```
+
+It prints how many emails ended in each code, then the ones a person has to look at (review queue, unmatched or undetermined cancellations, errors). `-v` logs every email.
 
 ## Test data
 
