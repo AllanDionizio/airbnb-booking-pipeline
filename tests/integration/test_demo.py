@@ -1,5 +1,6 @@
 """
-The demo from scratch: data/demo_seed.sql, then data/sample_inbox/ twice.
+The demo from scratch: data/demo_seed.sql, then data/sample_inbox/ twice,
+the second time from files or from a fake Gmail.
 
 The expected codes are written by hand from the story in synthetic/inbox.py,
 not computed from it.
@@ -15,6 +16,7 @@ from airbnb_booking_pipeline.pipeline import Kind, Pipeline
 from airbnb_booking_pipeline.sources import LocalSource
 
 DATA = Path(__file__).parents[2] / "data"
+INBOX = DATA / "sample_inbox"
 TABLES = ["bookings", "booking_review_queue", "processed_messages", "cancellation_events"]
 
 
@@ -28,7 +30,7 @@ def demo(conn):
     with conn.transaction():
         conn.execute((DATA / "demo_seed.sql").read_text(encoding="utf-8"))
     pipeline = Pipeline(PostgresStore(conn), FixedRates())
-    return lambda: pipeline.run(LocalSource(DATA / "sample_inbox").fetch())
+    return lambda source=None: pipeline.run((source or LocalSource(INBOX)).fetch())
 
 
 def row_counts(conn):
@@ -56,19 +58,35 @@ def test_the_first_run_walks_every_path(conn, demo):
     assert pending == [("HMTEST3002", "full_refund"), ("HMTEST3014", "penalty")]
 
 
+SECOND_RUN = {
+    (Kind.BOOKING, "ALREADY_PROCESSED"): 16,
+    (Kind.CANCELLATION, "ALREADY_PROCESSED"): 4,
+    # These never reach the database, so they come back until someone acts
+    (Kind.BOOKING, "PARSE_ERROR"): 1,
+    (Kind.UNRECOGNIZED, "UNRECOGNIZED"): 1,
+}
+
+
 def test_the_second_run_loads_nothing(conn, demo):
     demo()
     before = row_counts(conn)
 
     report = demo()
 
-    assert report.counts() == {
-        (Kind.BOOKING, "ALREADY_PROCESSED"): 16,
-        (Kind.CANCELLATION, "ALREADY_PROCESSED"): 4,
-        # These never reach the database, so they come back until someone acts
-        (Kind.BOOKING, "PARSE_ERROR"): 1,
-        (Kind.UNRECOGNIZED, "UNRECOGNIZED"): 1,
-    }
+    assert report.counts() == SECOND_RUN
+    assert row_counts(conn) == before
+
+
+def test_the_same_emails_from_gmail_load_nothing_new(conn, demo, fake_gmail):
+    demo()
+    before = row_counts(conn)
+    # Gmail ids, not file names, and newest first, as Gmail lists them
+    paths = sorted(INBOX.glob("*.eml"), reverse=True)
+    messages = {f"19a{n:013x}": path.read_bytes() for n, path in enumerate(paths)}
+
+    report = demo(fake_gmail(messages, page_size=5).source())
+
+    assert report.counts() == SECOND_RUN
     assert row_counts(conn) == before
 
 
