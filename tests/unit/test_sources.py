@@ -38,9 +38,12 @@ def test_a_date_without_a_time_zone_is_utc():
     assert email.received_at == datetime(2026, 10, 9, 10, tzinfo=UTC)
 
 
-def test_rejects_an_email_without_a_date():
-    with pytest.raises(ValueError, match="no Date header"):
-        from_rfc822(b"Subject: Hi\r\n\r\nbody\r\n", default_id="hi.eml")
+@pytest.mark.parametrize("date_header", [b"", b"Date: sometime last week\r\n"])
+def test_rejects_an_email_without_a_valid_date(date_header):
+    raw = b"Subject: Hi\r\n" + date_header + b"\r\nbody\r\n"
+
+    with pytest.raises(ValueError, match=r"hi\.eml: the email has no valid Date header"):
+        from_rfc822(raw, default_id="hi.eml")
 
 
 def test_reads_only_the_eml_files_in_name_order(tmp_path):

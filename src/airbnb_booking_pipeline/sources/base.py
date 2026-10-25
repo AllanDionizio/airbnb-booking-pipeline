@@ -30,9 +30,10 @@ def from_rfc822(raw: bytes, *, default_id: str) -> Email:
     missing. A Date without a time zone is taken as UTC.
     """
     msg = BytesParser(policy=policy.default).parsebytes(raw)
-    if msg["Date"] is None:
-        raise ValueError(f"{default_id}: the email has no Date header")
-    received_at = msg["Date"].datetime
+    # An unparseable Date header comes back as a header whose datetime is None
+    received_at = msg["Date"].datetime if msg["Date"] is not None else None
+    if received_at is None:
+        raise ValueError(f"{default_id}: the email has no valid Date header")
     if received_at.tzinfo is None:
         received_at = received_at.replace(tzinfo=UTC)
 
