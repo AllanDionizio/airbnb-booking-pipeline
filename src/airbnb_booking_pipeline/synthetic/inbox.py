@@ -33,7 +33,7 @@ from .emails import (
     render_confirmation,
     to_eml,
 )
-from .listings import LISTINGS
+from .listings import LISTINGS, Listing
 
 AURORA, BOREAL, CEDRO, DUNA, ECLIPSE, FENIX = LISTINGS
 _BRT = timezone(timedelta(hours=-3))
@@ -47,7 +47,7 @@ def _at(month: int, day: int, hour: int = 9, minute: int = 0) -> datetime:
 def _booking(
     code: str,
     guest: str,
-    listing,
+    listing: Listing,
     check_in: date,
     nights: int,
     nightly: float,
