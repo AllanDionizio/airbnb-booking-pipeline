@@ -1,4 +1,7 @@
-"""Command line errors: bad arguments, and a database that cannot be reached."""
+"""
+Command line errors: bad arguments, an inbox or Gmail that cannot be read,
+and a database that cannot be reached.
+"""
 
 import pytest
 
@@ -31,3 +34,33 @@ def test_an_unreachable_database_exits_with_1(tmp_path, capsys):
 
     assert exit_code == 1
     assert "database error" in capsys.readouterr().err
+
+
+def test_takes_either_an_inbox_or_gmail(tmp_path, capsys):
+    with pytest.raises(SystemExit) as exit_info:
+        cli.main(["run", "--inbox", str(tmp_path), "--gmail", "--database-url", NO_DATABASE])
+
+    assert exit_info.value.code == 2
+    assert "not allowed with argument" in capsys.readouterr().err
+
+
+def test_gmail_without_credentials_fails_before_connecting(monkeypatch, capsys):
+    monkeypatch.delenv("GOOGLE_REFRESH_TOKEN", raising=False)
+
+    with pytest.raises(SystemExit) as exit_info:
+        cli.main(["run", "--gmail", "--database-url", NO_DATABASE])
+
+    assert exit_info.value.code == 2
+    assert "GOOGLE_REFRESH_TOKEN" in capsys.readouterr().err
+
+
+def test_gmail_failing_to_answer_exits_with_1_and_one_line(monkeypatch, fake_gmail, capsys):
+    gmail = fake_gmail({}, refuse_token=True)
+    monkeypatch.setattr(cli.GmailSource, "from_env", gmail.source)
+
+    exit_code = cli.main(["run", "--gmail", "--database-url", NO_DATABASE])
+
+    assert exit_code == 1
+    err = capsys.readouterr().err
+    assert err.startswith("airbnb-pipeline: Google refused the refresh token")
+    assert err.count("\n") == 1
