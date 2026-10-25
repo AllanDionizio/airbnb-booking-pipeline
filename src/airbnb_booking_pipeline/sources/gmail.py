@@ -131,7 +131,7 @@ class GmailSource:
         response.raise_for_status()
         message = response.json()
         raw = message["raw"]
-        # base64url, and the padding may be missing; extra "=" are ignored
+        # base64url; Gmail may leave out the "=" padding, so it is put back
         rfc822 = base64.urlsafe_b64decode(raw + "=" * (-len(raw) % 4))
         # When Gmail received it, in milliseconds: the date when the header has none
         received = datetime.fromtimestamp(int(message["internalDate"]) / 1000, tz=UTC)
