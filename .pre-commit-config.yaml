@@ -2,8 +2,11 @@ repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0
     hooks:
+      # The demo emails keep Airbnb's trailing spaces byte for byte
       - id: trailing-whitespace
+        exclude: ^data/sample_inbox/
       - id: end-of-file-fixer
+        exclude: ^data/sample_inbox/
       - id: check-yaml
       - id: check-toml
       - id: check-added-large-files
