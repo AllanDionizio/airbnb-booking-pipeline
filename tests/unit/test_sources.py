@@ -46,6 +46,24 @@ def test_rejects_an_email_without_a_valid_date(date_header):
         from_rfc822(raw, default_id="hi.eml")
 
 
+@pytest.mark.parametrize("date_header", [b"", b"Date: sometime last week\r\n"])
+def test_the_default_date_stands_in_for_a_missing_or_invalid_date(date_header):
+    raw = b"Subject: Hi\r\n" + date_header + b"\r\nbody\r\n"
+    received = datetime(2026, 10, 9, 13, tzinfo=UTC)
+
+    email = from_rfc822(raw, default_id="hi.eml", default_date=received)
+
+    assert email.received_at == received
+
+
+def test_the_date_header_wins_over_the_default_date():
+    raw = b"Subject: Hi\r\nDate: Fri, 09 Oct 2026 10:00:00 -0300\r\n\r\nbody\r\n"
+
+    email = from_rfc822(raw, default_id="hi.eml", default_date=datetime(2000, 1, 1, tzinfo=UTC))
+
+    assert email.received_at == datetime(2026, 10, 9, 13, tzinfo=UTC)
+
+
 def test_reads_only_the_eml_files_in_name_order(tmp_path):
     for name in ("b.eml", "a.eml"):
         (tmp_path / name).write_bytes(to_eml(RENDERED[0], f"<{name}@example.invalid>"))

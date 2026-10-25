@@ -22,16 +22,20 @@ class Source(Protocol):
     def fetch(self) -> Iterable[Email]: ...
 
 
-def from_rfc822(raw: bytes, *, default_id: str) -> Email:
+def from_rfc822(raw: bytes, *, default_id: str, default_date: datetime | None = None) -> Email:
     """
     Read one RFC 822 message (an .eml file, or Gmail's "raw" format).
 
     The Message-ID header is the id; `default_id` stands in when it is
-    missing. A Date without a time zone is taken as UTC.
+    missing. The Date header is when the email arrived; `default_date` stands
+    in when it is missing or unreadable, and without one that is an error. A
+    Date without a time zone is taken as UTC.
     """
     msg = BytesParser(policy=policy.default).parsebytes(raw)
     # An unparseable Date header comes back as a header whose datetime is None
     received_at = msg["Date"].datetime if msg["Date"] is not None else None
+    if received_at is None:
+        received_at = default_date
     if received_at is None:
         raise ValueError(f"{default_id}: the email has no valid Date header")
     if received_at.tzinfo is None:
