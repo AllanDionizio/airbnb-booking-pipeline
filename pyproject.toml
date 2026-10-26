@@ -18,7 +18,13 @@ dependencies = [
 airbnb-pipeline = "airbnb_booking_pipeline.cli:main"
 
 [project.optional-dependencies]
+# The HTTP service in the container (web.py); the CLI does not need it
+web = [
+    "flask>=3.1,<4",
+    "gunicorn>=23,<27",
+]
 dev = [
+    "airbnb-booking-pipeline[web]",
     "pytest>=9.0",
     "ruff==0.17.1",  # keep in sync with .pre-commit-config.yaml
     "pre-commit>=4.0",
