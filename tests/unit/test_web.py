@@ -1,5 +1,6 @@
 """The HTTP layer, with a fake source and a fake run: status codes, JSON, and settings at startup."""
 
+import logging
 from datetime import UTC, datetime
 
 import psycopg
@@ -65,6 +66,12 @@ def test_sync_runs_the_emails_of_the_source_and_returns_the_report():
     assert run.calls == [[EMAIL]]
     assert response.status_code == 200
     assert response.json == REPORT.to_dict()
+
+
+def test_http_requests_stay_out_of_the_log():
+    client()
+
+    assert logging.getLogger("httpx").level == logging.WARNING
 
 
 def test_sync_only_answers_post():
