@@ -66,6 +66,8 @@ def create_app(source: Source | None = None, run: Run | None = None) -> Flask:
         level=os.environ.get("LOG_LEVEL", "INFO"),
         format="%(asctime)s %(levelname)s %(name)s %(message)s",
     )
+    # One line per HTTP request (PTAX, Gmail) would drown the one per email
+    logging.getLogger("httpx").setLevel(logging.WARNING)
 
     app = Flask(__name__)
 
