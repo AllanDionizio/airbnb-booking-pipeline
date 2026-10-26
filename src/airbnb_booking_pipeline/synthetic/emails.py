@@ -143,15 +143,14 @@ def _reservation_url(code: str) -> str:
     return f"https://www.airbnb.com.br/hosting/reservations/details/{code}"
 
 
-def _forward(email: RenderedEmail, lines: list[str]) -> RenderedEmail:
+def _forward(subject: str | None, sent: datetime, lines: list[str]) -> RenderedEmail:
     """`lines`, the body Gmail writes for a forward, under its "Forwarded message" block."""
-    sent = email.email_date
     header = [
         "---------- Forwarded message ---------",
         "De: Airbnb <automated@airbnb.com>",
         f"Date: {_WEEKDAYS_PT[sent.weekday()]}, {sent.day} de {_MONTHS_PT[sent.month - 1]} "
         f"de {sent.year} às {sent:%H:%M}",
-        f"Subject: {email.subject or ''}",
+        f"Subject: {subject or ''}",
         "To: <host@example.com>",
         "",
         "",
@@ -162,7 +161,7 @@ def _forward(email: RenderedEmail, lines: list[str]) -> RenderedEmail:
         "",
     ]
     return RenderedEmail(
-        subject=f"Fwd: {email.subject or ''}",
+        subject=f"Fwd: {subject or ''}",
         body="\r\n".join(header + lines) + "\r\n",
         email_date=sent,
     )
@@ -197,11 +196,7 @@ def render_confirmation(spec: ConfirmationSpec) -> RenderedEmail:
     ]
     host_paid = [(label, money(amount)) for label, amount in spec.payout_lines]
 
-    email = RenderedEmail(
-        subject=f"Reserva confirmada - {spec.guest} chega em {arrival}",
-        body="",
-        email_date=spec.email_date,
-    )
+    subject = f"Reserva confirmada - {spec.guest} chega em {arrival}"
     if spec.forwarded:
         lines = [
             f"Nova reserva confirmada! {spec.guest} chega em {arrival}.",
@@ -252,7 +247,7 @@ def render_confirmation(spec: ConfirmationSpec) -> RenderedEmail:
             "",
             _wrap("O processamento do pagamento pode levar algum tempo.", _FORWARD_WRAP),
         ]
-        return _forward(email, lines)
+        return _forward(subject, spec.email_date, lines)
 
     blank = " " * _COLUMN
     body = "\n".join(
@@ -302,7 +297,7 @@ def render_confirmation(spec: ConfirmationSpec) -> RenderedEmail:
             "",
         ]
     )
-    return RenderedEmail(email.subject, body, email.email_date)
+    return RenderedEmail(subject=subject, body=body, email_date=spec.email_date)
 
 
 def render_cancellation(spec: CancellationSpec) -> RenderedEmail:
@@ -371,12 +366,11 @@ def render_cancellation(spec: CancellationSpec) -> RenderedEmail:
             f"{_short_date(spec.check_out, end_year)} de {end_year}"
         )
         subject = f"Cancelado: reserva {spec.code} de {dated_stay}"
-    email = RenderedEmail(
+    if spec.forwarded:
+        return _forward(subject, spec.email_date, "\n\n".join(paragraphs).split("\n"))
+    return RenderedEmail(
         subject=subject, body="\n\n".join(paragraphs) + "\n", email_date=spec.email_date
     )
-    if spec.forwarded:
-        return _forward(email, "\n\n".join(paragraphs).split("\n"))
-    return email
 
 
 def to_eml(email: RenderedEmail, message_id: str) -> bytes:
