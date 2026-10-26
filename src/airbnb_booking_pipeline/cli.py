@@ -19,9 +19,8 @@ from typing import TextIO
 
 import psycopg
 
-from .enrich import PtaxClient
-from .load import PostgresStore
-from .pipeline import Pipeline, RunReport, business_tz_from_env
+from . import runner
+from .pipeline import RunReport
 from .sources import GmailError, GmailSource, LocalSource
 
 
@@ -83,9 +82,7 @@ def main(argv: list[str] | None = None, out: TextIO = sys.stdout) -> int:
         return 1
 
     try:
-        with psycopg.connect(args.database_url, autocommit=True) as conn:
-            pipeline = Pipeline(PostgresStore(conn), PtaxClient.from_env(), business_tz_from_env())
-            report = pipeline.run(emails)
+        report = runner.run_emails(emails, args.database_url)
     except psycopg.Error as exc:
         print(f"airbnb-pipeline: database error: {exc}", file=sys.stderr)
         return 1
