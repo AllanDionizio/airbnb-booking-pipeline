@@ -1,10 +1,12 @@
 """
-Command line: `airbnb-pipeline run --inbox DIR` (or `python -m airbnb_booking_pipeline`).
+Command line: `airbnb-pipeline run --inbox DIR` or `airbnb-pipeline run --gmail`
+(or `python -m airbnb_booking_pipeline`).
 
-Reads every .eml file in the inbox, runs the pipeline against the database
-in DATABASE_URL and prints a summary plus the emails that need a person.
-The exit code is 0 whenever the run finishes, attention items included: they
-are part of the normal flow, not a failure. A database error stops the run
+Reads every .eml file in the inbox, or the emails that match the Gmail
+query, runs the pipeline against the database in DATABASE_URL and prints a
+summary plus the emails that need a person. The exit code is 0 whenever the
+run finishes, attention items included: they are part of the normal flow,
+not a failure. A database error, or Gmail failing to answer, stops the run
 with exit code 1; what was loaded stays, and rerunning is safe.
 """
 
@@ -20,7 +22,7 @@ import psycopg
 from .enrich import PtaxClient
 from .load import PostgresStore
 from .pipeline import Pipeline, RunReport, business_tz_from_env
-from .sources import LocalSource
+from .sources import GmailError, GmailSource, LocalSource
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -28,8 +30,14 @@ def _parser() -> argparse.ArgumentParser:
         prog="airbnb-pipeline", description="Load Airbnb host emails into Postgres."
     )
     commands = parser.add_subparsers(dest="command", required=True)
-    run = commands.add_parser("run", help="process a directory of .eml files")
-    run.add_argument("--inbox", type=Path, required=True, help="directory with the .eml files")
+    run = commands.add_parser("run", help="process the emails from a directory or from Gmail")
+    source = run.add_mutually_exclusive_group(required=True)
+    source.add_argument("--inbox", type=Path, help="directory with the .eml files")
+    source.add_argument(
+        "--gmail",
+        action="store_true",
+        help="the mailbox of $GOOGLE_REFRESH_TOKEN, searched with $GMAIL_QUERY",
+    )
     run.add_argument(
         "--database-url",
         default=os.environ.get("DATABASE_URL"),
@@ -66,9 +74,13 @@ def main(argv: list[str] | None = None, out: TextIO = sys.stdout) -> int:
     )
 
     try:
-        emails = LocalSource(args.inbox).fetch()
-    except (FileNotFoundError, ValueError) as exc:
+        source = GmailSource.from_env() if args.gmail else LocalSource(args.inbox)
+        emails = source.fetch()
+    except (FileNotFoundError, ValueError) as exc:  # a missing inbox or setting
         parser.error(str(exc))
+    except GmailError as exc:
+        print(f"airbnb-pipeline: {exc}", file=sys.stderr)
+        return 1
 
     try:
         with psycopg.connect(args.database_url, autocommit=True) as conn:

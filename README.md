@@ -28,11 +28,14 @@ Idempotency is per email (`processed_messages` for confirmations, `cancellation_
 
 Every email ends with a result code: the database's codes above, or one of three the pipeline sets itself when the email never reaches the database (`UNRECOGNIZED`, `PARSE_ERROR`, `FX_ERROR`). A bad email is reported and the run goes on; a database error stops the run, and rerunning is safe because every email is idempotent.
 
-Emails come from a source ([`sources/`](src/airbnb_booking_pipeline/sources/)). For now that is `LocalSource`, a directory of `.eml` files, with the `Message-ID` header as the idempotency key. The command line runs one:
+Emails come from a source ([`sources/`](src/airbnb_booking_pipeline/sources/)): `LocalSource`, a directory of `.eml` files, or `GmailSource`, the host's mailbox. Both read the full RFC 822 message (Gmail's `raw` format) the same way, so the `Message-ID` header is the idempotency key whichever source an email came from. The command line runs either one:
 
 ```bash
 airbnb-pipeline run --inbox path/to/emails   # uses $DATABASE_URL
+airbnb-pipeline run --gmail
 ```
+
+`GmailSource` calls the Gmail REST API with read-only access, through an OAuth refresh token obtained once, outside this repo (`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REFRESH_TOKEN`). By default it reads Airbnb's confirmation and cancellation emails from the last two days; `GMAIL_QUERY` takes any Gmail search instead. The window overlaps on purpose, because an email read twice comes back as `ALREADY_PROCESSED`. The listing follows every page, and more than 500 matches stop the run instead of leaving emails behind.
 
 It prints how many emails ended in each code, then the ones a person has to look at (review queue, unmatched or undetermined cancellations, errors). `-v` logs every email.
 
