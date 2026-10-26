@@ -137,3 +137,33 @@ def test_lines_that_do_not_add_up_are_an_error():
 def test_guest_name_comes_from_the_subject():
     with pytest.raises(ParseError, match="guest_name"):
         parse_confirmation(make_body(), subject=None, email_date=EMAIL_DATE)
+
+
+def test_a_forward_puts_each_amount_below_its_label():
+    lines = (
+        "Preço da acomodação para 2 noites\n\nR$517,30\n\n"
+        "Taxa de limpeza\n\nR$93,70\n\n"
+        "Taxa de serviço do anfitrião (4.0% + IVA)\n\n-R$24,45"
+    )
+
+    booking = parse_confirmation(
+        make_body(payout_lines=lines), subject=SUBJECT, email_date=EMAIL_DATE
+    )
+
+    assert (
+        booking.payout_lines
+        == parse_confirmation(make_body(), subject=SUBJECT, email_date=EMAIL_DATE).payout_lines
+    )
+
+
+@pytest.mark.parametrize(
+    ("lines", "error"),
+    [
+        ("Preço da acomodação para 2 noites\n\nTaxa de limpeza   R$93,70", "No amount below"),
+        ("Preço da acomodação para 2 noites   R$517,30\n\nTaxa de limpeza", "No amount below"),
+        ("Preço da acomodação para 2 noites   R$517,30\n\nR$93,70", "without a label"),
+    ],
+)
+def test_a_label_and_an_amount_must_pair_up(lines, error):
+    with pytest.raises(ParseError, match=error):
+        parse_confirmation(make_body(payout_lines=lines), subject=SUBJECT, email_date=EMAIL_DATE)
