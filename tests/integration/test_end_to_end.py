@@ -6,7 +6,7 @@ from datetime import date, timedelta
 
 import pytest
 
-from airbnb_booking_pipeline import cli
+from airbnb_booking_pipeline import cli, runner
 from airbnb_booking_pipeline.enrich import FxRate
 from airbnb_booking_pipeline.load import PostgresStore
 from airbnb_booking_pipeline.pipeline import Kind, Pipeline
@@ -89,7 +89,7 @@ def test_loads_a_directory_of_emails(conn, listings, inbox):
 def test_the_cli_runs_the_inbox_and_prints_a_summary(
     conn, listings, inbox, database_url, monkeypatch
 ):
-    monkeypatch.setattr(cli, "PtaxClient", FixedRates)
+    monkeypatch.setattr(runner, "PtaxClient", FixedRates)
     out = io.StringIO()
 
     exit_code = cli.main(["run", "--inbox", str(inbox), "--database-url", database_url], out=out)

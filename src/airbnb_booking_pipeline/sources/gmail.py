@@ -38,7 +38,8 @@ DEFAULT_QUERY = (
 )
 DEFAULT_LIMIT = 500
 
-_ENV_CREDENTIALS = ("GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET", "GOOGLE_REFRESH_TOKEN")
+# The settings GmailSource.from_env reads, all three required
+ENV_CREDENTIALS = ("GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET", "GOOGLE_REFRESH_TOKEN")
 
 
 class GmailError(RuntimeError):
@@ -77,10 +78,10 @@ class GmailSource:
     @classmethod
     def from_env(cls, http: httpx.Client | None = None) -> "GmailSource":
         """Credentials from GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET and GOOGLE_REFRESH_TOKEN."""
-        missing = [name for name in _ENV_CREDENTIALS if not os.environ.get(name)]
+        missing = [name for name in ENV_CREDENTIALS if not os.environ.get(name)]
         if missing:
             raise ValueError(f"Gmail needs {', '.join(missing)} in the environment")
-        credentials = GmailCredentials(*(os.environ[name] for name in _ENV_CREDENTIALS))
+        credentials = GmailCredentials(*(os.environ[name] for name in ENV_CREDENTIALS))
         return cls(credentials, query=os.environ.get("GMAIL_QUERY") or DEFAULT_QUERY, http=http)
 
     def fetch(self) -> list[Email]:

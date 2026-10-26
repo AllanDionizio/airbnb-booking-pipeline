@@ -1,4 +1,4 @@
-# Local Postgres for development and the integration tests.
+# Local Postgres for development and the integration tests, and the app.
 # The SQL in sql/ runs once, when the volume is first created; `make db-reset`
 # starts over from an empty database.
 services:
@@ -17,6 +17,27 @@ services:
       # Over TCP: while the scripts in sql/ run, the image starts a temporary
       # server on the Unix socket only, which would pass a socket check early
       test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U pipeline -d bookings"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+
+  # The HTTP service over the sample inbox, only with `--profile app`
+  # (`make serve`); `make db-up` and the tests start Postgres alone
+  app:
+    build: .
+    profiles: ["app"]
+    environment:
+      DATABASE_URL: postgresql://pipeline:pipeline@postgres:5432/bookings
+      INBOX_DIR: /inbox
+    volumes:
+      - ./data/sample_inbox:/inbox:ro
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/')"]
       interval: 2s
       timeout: 3s
       retries: 15
