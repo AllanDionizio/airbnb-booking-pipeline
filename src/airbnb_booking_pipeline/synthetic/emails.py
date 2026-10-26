@@ -14,6 +14,15 @@ including the quirks the parsers have to survive:
     across lines;
   - a cancellation with a penalty also shows an "Emitir reembolso integral"
     button, the trap behind the full-refund false positive.
+
+A spec with `forwarded=True` renders the email as Gmail forwards it. Gmail
+does not keep the original text/plain part: it writes a new one from the
+HTML, so a forward is a different layout, not the same body under a header.
+Headings lose their capitals ("Código de confirmação"), check-in and checkout
+are stacked instead of side by side, every payout label sits on its own line
+above its amount, links show up in angle brackets, prose wraps at ~76
+columns and lines end in CRLF. On top come a "Forwarded message" block and
+"Fwd:" in the subject.
 """
 
 import textwrap
@@ -33,6 +42,7 @@ _MONTHS_PT = (
 # Airbnb writes date ranges with thin spaces around an en dash
 _RANGE_SEP = "\u2009\u2013\u2009"
 _WRAP = 60
+_FORWARD_WRAP = 76
 _COLUMN = 19  # width of the check-in column in the two-column block
 _GUEST_SERVICE_RATE = 0.14
 
@@ -61,6 +71,7 @@ class ConfirmationSpec:
     currency: str = "BRL"
     # Between symbol and amount: "", " " or "\xa0"
     money_sep: str = ""
+    forwarded: bool = False
 
     @property
     def host_payout(self) -> float:
@@ -80,6 +91,7 @@ class CancellationSpec:
     currency: str = "BRL"
     money_sep: str = ""
     with_subject: bool = True
+    forwarded: bool = False
 
 
 def format_money(value: float, currency: str = "BRL", sep: str = "") -> str:
@@ -109,14 +121,51 @@ def _money_line(label: str, amount: str) -> str:
     return f"{label}   {amount}"
 
 
-def _wrap(paragraph: str) -> str:
+def _stacked(pairs: list[tuple[str, str]]) -> list[str]:
+    """Each label above its amount, with blank lines in between, as a forward lays them out."""
+    lines = []
+    for label, amount in pairs:
+        lines += [label, "", amount, ""]
+    return lines[:-1]
+
+
+def _wrap(paragraph: str, width: int = _WRAP) -> str:
     # Only ASCII whitespace breaks a line, so "R$\xa0287,15" stays whole,
     # as it does in the real emails.
-    return textwrap.fill(paragraph, _WRAP, break_long_words=False, break_on_hyphens=False)
+    return textwrap.fill(paragraph, width, break_long_words=False, break_on_hyphens=False)
 
 
 def _room_url(listing: Listing) -> str:
     return f"https://www.airbnb.com.br/rooms/{listing.room_id}?source_impression_id=email"
+
+
+def _reservation_url(code: str) -> str:
+    return f"https://www.airbnb.com.br/hosting/reservations/details/{code}"
+
+
+def _forward(email: RenderedEmail, lines: list[str]) -> RenderedEmail:
+    """`lines`, the body Gmail writes for a forward, under its "Forwarded message" block."""
+    sent = email.email_date
+    header = [
+        "---------- Forwarded message ---------",
+        "De: Airbnb <automated@airbnb.com>",
+        f"Date: {_WEEKDAYS_PT[sent.weekday()]}, {sent.day} de {_MONTHS_PT[sent.month - 1]} "
+        f"de {sent.year} às {sent:%H:%M}",
+        f"Subject: {email.subject or ''}",
+        "To: <host@example.com>",
+        "",
+        "",
+        # The preheader Airbnb pads with invisible characters
+        "\u2007\u034f " * 12,
+        "[image: Airbnb]",
+        "<https://www.airbnb.com.br/>",
+        "",
+    ]
+    return RenderedEmail(
+        subject=f"Fwd: {email.subject or ''}",
+        body="\r\n".join(header + lines) + "\r\n",
+        email_date=sent,
+    )
 
 
 def render_confirmation(spec: ConfirmationSpec) -> RenderedEmail:
@@ -142,12 +191,68 @@ def render_confirmation(spec: ConfirmationSpec) -> RenderedEmail:
     guest_fee = round(accommodation * _GUEST_SERVICE_RATE, 2)
     guest_total = round(accommodation + sum(a for _, a in repeated) + guest_fee, 2)
     guest_paid = [
-        _money_line(f"{money(accommodation / nights)} x {nights} noites", money(accommodation)),
-        *(_money_line(label, money(amount)) for label, amount in repeated),
-        _money_line("Taxa de serviço do hóspede", money(guest_fee)),
-        _money_line(f"TOTAL ({spec.currency})", money(guest_total)),
+        (f"{money(accommodation / nights)} x {nights} noites", money(accommodation)),
+        *((label, money(amount)) for label, amount in repeated),
+        ("Taxa de serviço do hóspede", money(guest_fee)),
     ]
-    host_paid = [_money_line(label, money(amount)) for label, amount in spec.payout_lines]
+    host_paid = [(label, money(amount)) for label, amount in spec.payout_lines]
+
+    email = RenderedEmail(
+        subject=f"Reserva confirmada - {spec.guest} chega em {arrival}",
+        body="",
+        email_date=spec.email_date,
+    )
+    if spec.forwarded:
+        lines = [
+            f"Nova reserva confirmada! {spec.guest} chega em {arrival}.",
+            "",
+            _wrap(
+                "Envie uma mensagem para confirmar os detalhes do check-in "
+                "ou para dar as boas-vindas.",
+                _FORWARD_WRAP,
+            ),
+            f"<{_reservation_url(spec.code)}>",
+            "",
+            f"[image: {spec.listing.name}]",
+            f"<{_room_url(spec.listing)}>",
+            "",
+            spec.listing.name,
+            "",
+            "Casa/apto inteiro",
+            f"<{_room_url(spec.listing)}>",
+            "",
+            "Check-in",
+            "",
+            _long_date(spec.check_in, year),
+            "",
+            "15:00",
+            "",
+            "Checkout",
+            "",
+            _long_date(spec.check_out, year),
+            "",
+            "11:00",
+            "Hóspedes",
+            "",
+            guests,
+            "Código de confirmação",
+            "",
+            spec.code,
+            "",
+            "O hóspede pagou",
+            "",
+            *_stacked(guest_paid),
+            f"Total ({spec.currency})",
+            money(guest_total),
+            "Pagamento do anfitrião",
+            "",
+            *_stacked(host_paid),
+            "Você recebe",
+            money(spec.host_payout),
+            "",
+            _wrap("O processamento do pagamento pode levar algum tempo.", _FORWARD_WRAP),
+        ]
+        return _forward(email, lines)
 
     blank = " " * _COLUMN
     body = "\n".join(
@@ -180,11 +285,13 @@ def render_confirmation(spec: ConfirmationSpec) -> RenderedEmail:
             "",
             "O HÓSPEDE PAGOU",
             "",
-            "\n\n".join(guest_paid),
+            "\n\n".join(_money_line(label, amount) for label, amount in guest_paid),
+            "",
+            _money_line(f"TOTAL ({spec.currency})", money(guest_total)),
             "",
             "PAGAMENTO DO ANFITRIÃO",
             "",
-            "\n\n".join(host_paid),
+            "\n\n".join(_money_line(label, amount) for label, amount in host_paid),
             "",
             _money_line("VOCÊ RECEBE", money(spec.host_payout)),
             "",
@@ -195,24 +302,30 @@ def render_confirmation(spec: ConfirmationSpec) -> RenderedEmail:
             "",
         ]
     )
-    return RenderedEmail(
-        subject=f"Reserva confirmada - {spec.guest} chega em {arrival}",
-        body=body,
-        email_date=spec.email_date,
-    )
+    return RenderedEmail(email.subject, body, email.email_date)
 
 
 def render_cancellation(spec: CancellationSpec) -> RenderedEmail:
     year = spec.email_date.year
     stay = f"{_short_date(spec.check_in, year)}{_RANGE_SEP}{_short_date(spec.check_out, year)}"
     guests = f"{spec.num_guests} hóspede{'s' if spec.num_guests > 1 else ''}"
+    width = _FORWARD_WRAP if spec.forwarded else _WRAP
 
+    def wrap(paragraph: str) -> str:
+        return _wrap(paragraph, width)
+
+    if spec.forwarded:
+        top = [
+            f"Reserva cancelada\n[image: {spec.listing.name}]\n<{_reservation_url(spec.code)}>",
+            f"{spec.listing.name}\n<{_reservation_url(spec.code)}>",
+        ]
+    else:
+        top = ["RESERVA CANCELADA", f"{_room_url(spec.listing)}   {spec.listing.name}"]
     paragraphs = [
-        "RESERVA CANCELADA",
-        f"{_room_url(spec.listing)}   {spec.listing.name}",
+        *top,
         f"Anúncio n° {spec.listing.room_id}",
         f"{stay}, {guests}",
-        _wrap(
+        wrap(
             f"Infelizmente, o seu hóspede, {spec.guest}, precisou cancelar a "
             f"reserva {spec.code} de {stay}. Seu calendário foi atualizado, e "
             "essas datas agora estão disponíveis."
@@ -220,30 +333,30 @@ def render_cancellation(spec: CancellationSpec) -> RenderedEmail:
     ]
     if spec.penalty is None:
         paragraphs.append(
-            _wrap("Conforme sua política de cancelamento, o hóspede recebeu um reembolso integral.")
+            wrap("Conforme sua política de cancelamento, o hóspede recebeu um reembolso integral.")
         )
     else:
         amount = format_money(spec.penalty, spec.currency, spec.money_sep)
         if spec.currency == "USD":
             amount += "\xa0USD"
         paragraphs += [
-            _wrap(
+            wrap(
                 "Conforme sua política de cancelamento, seu recebimento foi "
                 f"atualizado para {amount}."
             ),
-            _wrap(
+            wrap(
                 "Este pagamento será liberado 24 horas após a data do check-in. "
                 "É possível visualizar o pagamento atualizado em seu Histórico "
                 "de Transações."
             ),
-            _wrap(
+            wrap(
                 "Você também pode emitir o reembolso no valor total para o "
                 "usuário clicando no botão abaixo."
             ),
             "Emitir reembolso integral",
         ]
     paragraphs.append(
-        _wrap(
+        wrap(
             "Tem alguma dúvida? Confira mais informações sobre como funciona "
             "quando um hóspede cancela."
         )
@@ -258,9 +371,12 @@ def render_cancellation(spec: CancellationSpec) -> RenderedEmail:
             f"{_short_date(spec.check_out, end_year)} de {end_year}"
         )
         subject = f"Cancelado: reserva {spec.code} de {dated_stay}"
-    return RenderedEmail(
+    email = RenderedEmail(
         subject=subject, body="\n\n".join(paragraphs) + "\n", email_date=spec.email_date
     )
+    if spec.forwarded:
+        return _forward(email, "\n\n".join(paragraphs).split("\n"))
+    return email
 
 
 def to_eml(email: RenderedEmail, message_id: str) -> bytes:
@@ -272,5 +388,12 @@ def to_eml(email: RenderedEmail, message_id: str) -> bytes:
         msg["Subject"] = email.subject
     msg["Date"] = format_datetime(email.email_date)
     msg["Message-ID"] = message_id
-    msg.set_content(email.body)
+    if "\r" in email.body:
+        # A forward's CRLF lines survive only as encoded bytes: set_content
+        # on the text would turn them into LF.
+        msg.set_content(
+            email.body.encode(), "text", "plain", cte="base64", params={"charset": "utf-8"}
+        )
+    else:
+        msg.set_content(email.body)
     return msg.as_bytes()
