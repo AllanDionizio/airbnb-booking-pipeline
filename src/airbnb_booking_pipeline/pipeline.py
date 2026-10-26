@@ -23,7 +23,7 @@ import os
 import re
 from collections import Counter
 from collections.abc import Iterable
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from datetime import date, datetime
 from enum import StrEnum
 from typing import Protocol
@@ -84,6 +84,17 @@ class RunReport:
     def attention(self) -> list[Outcome]:
         """The emails a person has to look at."""
         return [o for o in self.outcomes if o.needs_attention]
+
+    def to_dict(self) -> dict:
+        """The summary the CLI prints, as JSON-ready data: totals per code and the attention list."""
+        return {
+            "processed": len(self.outcomes),
+            "counts": [
+                {"kind": kind, "code": code, "emails": n}
+                for (kind, code), n in sorted(self.counts().items())
+            ],
+            "attention": [asdict(o) for o in self.attention],
+        }
 
 
 class Store(Protocol):

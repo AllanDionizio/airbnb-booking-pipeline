@@ -1,5 +1,6 @@
 """Routing, USD conversion and result codes of the pipeline, with a fake database and fake rates."""
 
+import json
 from dataclasses import replace
 from datetime import UTC, date, datetime
 from zoneinfo import ZoneInfo
@@ -280,6 +281,30 @@ def test_the_report_counts_codes_and_lists_what_needs_attention():
         (Kind.UNRECOGNIZED, "UNRECOGNIZED"): 1,
     }
     assert [o.message_id for o in report.attention] == ["c"]
+
+
+def test_the_report_as_json_has_the_totals_and_the_attention_list():
+    emails = [email("simple", message_id="a"), email("simple", message_id="c", subject="Oi")]
+
+    data = Pipeline(FakeStore(), FakeRates(), SAO_PAULO).run(emails).to_dict()
+
+    assert json.loads(json.dumps(data)) == {
+        "processed": 2,
+        "counts": [
+            {"kind": "booking", "code": "CREATED", "emails": 1},
+            {"kind": "unrecognized", "code": "UNRECOGNIZED", "emails": 1},
+        ],
+        "attention": [
+            {
+                "message_id": "c",
+                "kind": "unrecognized",
+                "code": "UNRECOGNIZED",
+                "message": "Not a booking confirmation or a cancellation: 'Oi'",
+                "needs_attention": True,
+                "confirmation_code": None,
+            }
+        ],
+    }
 
 
 def test_a_database_error_stops_the_run():
