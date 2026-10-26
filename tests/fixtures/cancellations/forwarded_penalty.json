@@ -1,0 +1,13 @@
+{
+  "scenario": "forwarded_penalty",
+  "description": "Forwarded through Gmail: 'Fwd:' subject, 'Reserva cancelada' heading, CRLF lines.",
+  "subject": "Fwd: Cancelado: reserva HMTEST2006 de 6 de nov. – 8 de nov. de 2026",
+  "email_date": "2026-10-14T10:20:00-03:00",
+  "body": "---------- Forwarded message ---------\r\nDe: Airbnb <automated@airbnb.com>\r\nDate: qua., 14 de out. de 2026 às 10:20\r\nSubject: Cancelado: reserva HMTEST2006 de 6 de nov. – 8 de nov. de 2026\r\nTo: <host@example.com>\r\n\r\n\r\n ͏  ͏  ͏  ͏  ͏  ͏  ͏  ͏  ͏  ͏  ͏  ͏ \r\n[image: Airbnb]\r\n<https://www.airbnb.com.br/>\r\n\r\nReserva cancelada\r\n[image: Casa Cedro]\r\n<https://www.airbnb.com.br/hosting/reservations/details/HMTEST2006>\r\n\r\nCasa Cedro\r\n<https://www.airbnb.com.br/hosting/reservations/details/HMTEST2006>\r\n\r\nAnúncio n° 900003\r\n\r\n6 de nov. – 8 de nov., 2 hóspedes\r\n\r\nInfelizmente, o seu hóspede, Guest Uniform, precisou cancelar a reserva\r\nHMTEST2006 de 6 de nov. – 8 de nov.. Seu calendário foi atualizado, e essas\r\ndatas agora estão disponíveis.\r\n\r\nConforme sua política de cancelamento, seu recebimento foi atualizado para\r\nR$342,60.\r\n\r\nEste pagamento será liberado 24 horas após a data do check-in. É possível\r\nvisualizar o pagamento atualizado em seu Histórico de Transações.\r\n\r\nVocê também pode emitir o reembolso no valor total para o usuário clicando\r\nno botão abaixo.\r\n\r\nEmitir reembolso integral\r\n\r\nTem alguma dúvida? Confira mais informações sobre como funciona quando um\r\nhóspede cancela.\r\n",
+  "expected": {
+    "confirmation_code": "HMTEST2006",
+    "outcome": "penalty",
+    "penalty_amount": 342.6,
+    "currency": "BRL"
+  }
+}

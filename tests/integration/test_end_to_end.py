@@ -35,7 +35,7 @@ class FixedRates:
 
 @pytest.fixture
 def inbox(tmp_path):
-    """The 18 scenarios as .eml files, plus a cancellation of the "simple" booking."""
+    """The 20 scenarios as .eml files, plus a cancellation of the "simple" booking."""
     rendered = [render_confirmation(sc.spec) for sc in CONFIRMATIONS]
     rendered += [render_cancellation(sc.spec) for sc in CANCELLATIONS]
 
@@ -71,11 +71,11 @@ def test_loads_a_directory_of_emails(conn, listings, inbox):
     report = pipeline.run(LocalSource(inbox).fetch())
 
     assert report.counts() == {
-        (Kind.BOOKING, "CREATED"): 13,
+        (Kind.BOOKING, "CREATED"): 14,
         (Kind.CANCELLATION, "FLAGGED"): 1,  # the "simple" booking
-        (Kind.CANCELLATION, "NOT_FOUND"): 5,  # their bookings are not in the inbox
+        (Kind.CANCELLATION, "NOT_FOUND"): 6,  # their bookings are not in the inbox
     }
-    assert conn.execute("select count(*) from pipeline.bookings").fetchone()[0] == 13
+    assert conn.execute("select count(*) from pipeline.bookings").fetchone()[0] == 14
     pending = conn.execute(
         "select confirmation_code, outcome from pipeline.pending_cancellations"
     ).fetchall()
@@ -96,6 +96,6 @@ def test_the_cli_runs_the_inbox_and_prints_a_summary(
 
     assert exit_code == 0
     text = out.getvalue()
-    assert text.startswith("19 emails processed\n")
-    assert "Needs attention (6):" in text
+    assert text.startswith("21 emails processed\n")
+    assert "Needs attention (7):" in text
     assert "HMTEST1001" in text

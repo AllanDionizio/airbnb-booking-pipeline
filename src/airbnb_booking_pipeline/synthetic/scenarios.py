@@ -1,5 +1,5 @@
 """
-The 18 regression scenarios: 13 confirmations and 5 cancellations.
+The 20 regression scenarios: 14 confirmations and 6 cancellations.
 
 Each scenario covers one layout variant seen in production. The expected
 parser output is written by hand next to the spec instead of being derived
@@ -353,6 +353,33 @@ CONFIRMATIONS: tuple[ConfirmationScenario, ...] = (
         ),
         {"accommodation": 1450.00, "cleaning_fee": 110.00, "host_service_fee": 66.61},
     ),
+    ConfirmationScenario(
+        "forwarded",
+        "Forwarded through Gmail: a text part rewritten from the HTML, stacked dates and amounts.",
+        ConfirmationSpec(
+            code="HMTEST1014",
+            guest="Guest Tango",
+            listing=BOREAL,
+            check_in=date(2026, 10, 16),
+            check_out=date(2026, 10, 19),
+            email_date=_at(2026, 9, 30, 15, 40),
+            adults=2,
+            other_guests=None,
+            payout_lines=(
+                ("Preço da acomodação para 3 noites", 648.00),
+                ("Taxa de limpeza", 95.00),
+                ("Ajuste de preço por noite", 27.00),
+                (_SERVICE_FEE, -30.80),
+            ),
+            forwarded=True,
+        ),
+        {
+            "accommodation": 648.00,
+            "cleaning_fee": 95.00,
+            "other_income": 27.00,
+            "host_service_fee": 30.80,
+        },
+    ),
 )
 
 
@@ -362,7 +389,7 @@ CANCELLATIONS: tuple[CancellationScenario, ...] = (
         "Penalty written 'R$315,40', with the 'Emitir reembolso integral' button below it.",
         CancellationSpec(
             code="HMTEST2001",
-            guest="Guest November",
+            guest="Guest Tango",
             listing=BOREAL,
             check_in=date(2026, 9, 4),
             check_out=date(2026, 9, 7),
@@ -445,5 +472,23 @@ CANCELLATIONS: tuple[CancellationScenario, ...] = (
         "full_refund",
         None,
         None,
+    ),
+    CancellationScenario(
+        "forwarded_penalty",
+        "Forwarded through Gmail: 'Fwd:' subject, 'Reserva cancelada' heading, CRLF lines.",
+        CancellationSpec(
+            code="HMTEST2006",
+            guest="Guest Uniform",
+            listing=CEDRO,
+            check_in=date(2026, 11, 6),
+            check_out=date(2026, 11, 8),
+            email_date=_at(2026, 10, 14, 10, 20),
+            num_guests=2,
+            penalty=342.60,
+            forwarded=True,
+        ),
+        "penalty",
+        342.60,
+        "BRL",
     ),
 )

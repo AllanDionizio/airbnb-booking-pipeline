@@ -20,7 +20,7 @@ def _fixture(name: str, description: str, email: RenderedEmail, expected: dict) 
 
 
 def build_fixtures() -> dict[str, str]:
-    """Relative path ('confirmations/simple.json') → file contents, for all 18 scenarios."""
+    """Relative path ('confirmations/simple.json') → file contents, for every scenario."""
     files = {}
     for sc in CONFIRMATIONS:
         spec = sc.spec
