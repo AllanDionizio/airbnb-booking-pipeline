@@ -41,7 +41,7 @@ It prints how many emails ended in each code, then the ones a person has to look
 
 ## Test data
 
-Every email in this repo is synthetic. A small generator in [`src/airbnb_booking_pipeline/synthetic/`](src/airbnb_booking_pipeline/synthetic/) renders Airbnb's Portuguese host email layout from a spec, using fictional listings, `Guest <NATO letter>` names, `HMTEST…` booking codes and made-up amounts. It produces the 18 regression fixtures in [`tests/fixtures/`](tests/fixtures/) (13 confirmations, 5 cancellations), one per layout variant the parsers have to handle: USD amounts, nbsp between symbol and value, stays crossing New Year, discounts and promotions, and the "full refund" button that appears in penalty emails. Each fixture stores the expected parser output, written by hand.
+Every email in this repo is synthetic. A small generator in [`src/airbnb_booking_pipeline/synthetic/`](src/airbnb_booking_pipeline/synthetic/) renders Airbnb's Portuguese host email layout from a spec, using fictional listings, `Guest <NATO letter>` names, `HMTEST…` booking codes and made-up amounts. It produces the 20 regression fixtures in [`tests/fixtures/`](tests/fixtures/) (14 confirmations, 6 cancellations), one per layout variant the parsers have to handle: USD amounts, nbsp between symbol and value, stays crossing New Year, discounts and promotions, the "full refund" button that appears in penalty emails, and emails forwarded through Gmail, which rewrites the text part from the HTML into a different layout. Each fixture stores the expected parser output, written by hand.
 
 ## Demo
 
