@@ -9,11 +9,21 @@ line with the label and the amount on the SAME line.
 
 The regex literals stay in Portuguese because they match the email text.
 
+A forwarded email has a second layout. Gmail does not forward the original
+text/plain part: it writes a new one from the HTML, where the headings keep
+only their first capital ("Código de confirmação", "Pagamento do anfitrião",
+"Você recebe"), check-in and checkout are stacked one above the other, and
+every payout label sits on its own line above its amount. Each regex below
+accepts both spellings of a heading, and the payout block reads both line
+shapes.
+
 The guest name comes from the subject ("Reserva confirmada - <name> chega
-em ..."): the body of the direct email does not carry it reliably.
+em ..."): the body of the direct email does not carry it reliably. A
+forward's subject has "Fwd:" in front, which the search skips.
 """
 
 import re
+from collections.abc import Iterator
 from dataclasses import asdict, dataclass
 from datetime import UTC, date, datetime
 
@@ -25,7 +35,7 @@ _MONTHS_PT = {
 }  # fmt: skip
 
 _RE_CONFIRMATION = re.compile(
-    r"CÓDIGO DE CONFIRMAÇÃO\s*\n\s*([A-Z0-9]{8,})",
+    r"(?:CÓDIGO DE CONFIRMAÇÃO|Código de confirmação)\s*\n\s*([A-Z0-9]{8,})",
 )
 # The guest name comes from the subject header, not from the body.
 _RE_GUEST = re.compile(
@@ -38,12 +48,18 @@ _RE_DATES_BLOCK = re.compile(
     r"Check-in\s+Checkout\s*\n(.*?)\n\s*\d{1,2}:\d{2}",
     re.DOTALL,
 )
+# A forward stacks them: "Check-in", the date, the time, then the same for
+# "Checkout".
+_RE_DATES_STACKED = re.compile(
+    r"Check-in\s*\n(.*?)\n\s*\d{1,2}:\d{2}\s*\n\s*Checkout\s*\n(.*?)\n\s*\d{1,2}:\d{2}",
+    re.DOTALL,
+)
 _RE_DATE = re.compile(
     r"(\d{1,2})\s+de\s+([a-zà-ÿ]+)\.?(?:\s+de\s+(\d{4}))?",
     re.IGNORECASE,
 )
 _RE_GUESTS = re.compile(
-    r"HÓSPEDES\s*\n\s*\n\s*(\d+)\s+adultos?",
+    r"(?:HÓSPEDES|Hóspedes)\s*\n\s*\n\s*(\d+)\s+adultos?",
 )
 # Listing name: the line right after the /rooms/... URL and right before
 # the property type ("Casa/apto inteiro").
@@ -56,11 +72,14 @@ _RE_LISTING = re.compile(
 # total (it includes Airbnb's guest fees), which does not matter here. The
 # "\s*" between symbol and amount absorbs the nbsp (\xa0) of the USD format.
 _RE_HOST_BLOCK = re.compile(
-    r"PAGAMENTO DO ANFITRIÃO\s*\n(.*?)\nVOCÊ RECEBE\s+" + CURRENCY + r"\s*([\d.,]+)",
+    r"(?:PAGAMENTO DO ANFITRIÃO|Pagamento do anfitrião)\s*\n(.*?)\n"
+    r"(?:VOCÊ RECEBE|Você recebe)\s+" + CURRENCY + r"\s*([\d.,]+)",
     re.DOTALL,
 )
 # One payout line: "<label>   <2+ spaces>   [-]<currency> <amount>".
 _RE_PAYOUT_LINE = re.compile(r"^(.*?)\s{2,}(-)?" + CURRENCY + r"\s*([\d.,]+)$")
+# A forward puts the amount on a line of its own, below the label.
+_RE_AMOUNT_LINE = re.compile(r"^(-)?" + CURRENCY + r"\s*([\d.,]+)$")
 
 # Email label (lowercased) → payout field. Matched by prefix because Airbnb
 # varies the suffix ("Preço da acomodação para 2 noites", "Taxa de serviço
@@ -120,6 +139,31 @@ def _classify_label(label: str) -> str:
     raise ParseError(f"Unknown label in the host payout block: {label!r}")
 
 
+def _payout_entries(block_body: str) -> Iterator[tuple[str, float]]:
+    """(label, signed amount) for each payout line, in either layout."""
+    label = None  # a forward's label, waiting for the amount on the next line
+    for raw in block_body.splitlines():
+        line = raw.strip()
+        if not line:
+            continue
+        if label is not None:
+            amount_match = _RE_AMOUNT_LINE.match(line)
+            if not amount_match:
+                raise ParseError(f"No amount below the payout label {label!r}")
+            is_negative, _, amount = amount_match.groups()
+            yield label, -parse_amount(amount) if is_negative else parse_amount(amount)
+            label = None
+        elif money_match := _RE_PAYOUT_LINE.match(line):
+            label_text, is_negative, _, amount = money_match.groups()
+            yield label_text.strip(), -parse_amount(amount) if is_negative else parse_amount(amount)
+        elif _RE_AMOUNT_LINE.match(line):
+            raise ParseError(f"Amount without a label in the host payout block: {line!r}")
+        else:
+            label = line
+    if label is not None:
+        raise ParseError(f"No amount below the payout label {label!r}")
+
+
 def _parse_host_block(body_text: str) -> tuple[dict[str, float], float, str]:
     """
     Extract the "PAGAMENTO DO ANFITRIÃO" → "VOCÊ RECEBE" block.
@@ -135,18 +179,8 @@ def _parse_host_block(body_text: str) -> tuple[dict[str, float], float, str]:
     host_payout = parse_amount(block_match.group(3))
 
     lines: dict[str, float] = {}
-    for raw in block_body.splitlines():
-        line = raw.strip()
-        if not line:
-            continue
-        money_match = _RE_PAYOUT_LINE.match(line)
-        if not money_match:
-            raise ParseError(f"Unexpected line in the host payout block: {line!r}")
-        label = money_match.group(1).strip()
-        is_negative = money_match.group(2) == "-"
-        value = parse_amount(money_match.group(4))
-        signed = -value if is_negative else value
-
+    for label, signed in _payout_entries(block_body):
+        value = abs(signed)
         field = _classify_label(label)
 
         if field == "_nightly_price_adjustment":
@@ -209,7 +243,8 @@ def parse_confirmation(
     code = _required(_RE_CONFIRMATION.search(body_text), "confirmation_code").group(1)
     guest = _required(_RE_GUEST.search(subject or ""), "guest_name").group(1).strip()
 
-    dates_block = _required(_RE_DATES_BLOCK.search(body_text), "dates").group(1)
+    dates_match = _RE_DATES_BLOCK.search(body_text) or _RE_DATES_STACKED.search(body_text)
+    dates_block = "\n".join(_required(dates_match, "dates").groups())
     date_matches = list(_RE_DATE.finditer(dates_block))
     if len(date_matches) < 2:
         raise ParseError(f"Expected 2 dates (check-in/checkout), found {len(date_matches)}")

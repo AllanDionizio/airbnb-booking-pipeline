@@ -25,10 +25,10 @@ def test_format_money_uses_the_brazilian_number_format(value, currency, sep, exp
     assert format_money(value, currency, sep) == expected
 
 
-def test_there_are_18_scenarios_with_unique_names():
+def test_there_are_20_scenarios_with_unique_names():
     names = [sc.name for sc in (*CONFIRMATIONS, *CANCELLATIONS)]
 
-    assert len(names) == len(set(names)) == 18
+    assert len(names) == len(set(names)) == 20
 
 
 def test_scenarios_use_only_fictional_identifiers():
@@ -58,4 +58,4 @@ def test_write_fixtures_removes_fixtures_of_renamed_scenarios(tmp_path):
 
     assert not stale.exists()
     assert sorted(written) == sorted(tmp_path.rglob("*.json"))
-    assert len(written) == 18
+    assert len(written) == 20
