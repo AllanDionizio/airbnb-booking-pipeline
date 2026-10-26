@@ -69,14 +69,37 @@ def run_one(mail, store=None, rates=None, tz=SAO_PAULO):
         ("simple", Kind.BOOKING),
         ("penalty_compact", Kind.CANCELLATION),
         ("full_refund_no_subject", Kind.CANCELLATION),  # routed by the body heading
+        ("forwarded", Kind.BOOKING),
+        ("forwarded_penalty", Kind.CANCELLATION),
     ],
 )
 def test_classifies_by_subject_then_by_body(name, kind):
     assert classify(email(name)) is kind
 
 
-def test_a_forwarded_cancellation_is_routed_by_its_body():
-    assert classify(email("penalty_compact", subject="Fwd: aviso")) is Kind.CANCELLATION
+@pytest.mark.parametrize("prefix", ["Fwd: ", "FW: ", "Enc: ", "fwd:Fwd: "])
+def test_forward_prefixes_do_not_hide_the_subject(prefix):
+    for name in ("simple", "penalty_compact"):
+        mail = email(name)
+        assert classify(replace(mail, subject=prefix + mail.subject)) is classify(mail)
+
+
+@pytest.mark.parametrize("name", ["penalty_compact", "forwarded_penalty"])
+def test_a_cancellation_under_another_subject_is_routed_by_its_heading(name):
+    assert classify(email(name, subject="Fwd: aviso")) is Kind.CANCELLATION
+
+
+def test_the_heading_counts_only_on_a_line_of_its_own():
+    mail = email("simple", subject=None, body="Reserva cancelada ontem, depois remarcada.")
+
+    assert classify(mail) is Kind.UNRECOGNIZED
+
+
+def test_a_forwarded_confirmation_reaches_the_database():
+    outcome, store, _ = run_one(email("forwarded"))
+
+    [(_, booking, _, _)] = store.calls
+    assert (outcome.code, booking.confirmation_code) == ("CREATED", "HMTEST1014")
 
 
 def test_a_confirmation_goes_to_upsert_booking():

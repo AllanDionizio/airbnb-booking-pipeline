@@ -20,6 +20,7 @@ the same run, the newer one is applied last and wins.
 
 import logging
 import os
+import re
 from collections import Counter
 from collections.abc import Iterable
 from dataclasses import dataclass
@@ -45,12 +46,14 @@ log = logging.getLogger(__name__)
 # the exchange rate, is its date in the business's time zone, not in UTC.
 DEFAULT_BUSINESS_TZ = "America/Sao_Paulo"
 
-# Routing is by subject. A cancellation can arrive without one, or with a
-# prefix like "Fwd:" (the parser then finds the booking code in the body), so
-# its body heading counts too.
+# Routing is by subject, once the prefixes a forward adds ("Fwd:", "FW:",
+# "Enc:") are dropped. A cancellation can also arrive without a subject, so
+# its body heading counts too: on a line of its own, in capitals in Airbnb's
+# text and in sentence case in the text Gmail writes for a forward.
+_FORWARD_PREFIXES = re.compile(r"^(?:(?:fwd?|enc)\s*:\s*)+", re.IGNORECASE)
 _CONFIRMATION_SUBJECT = "reserva confirmada"
 _CANCELLATION_SUBJECT = "cancelado: reserva"
-_CANCELLATION_HEADING = "RESERVA CANCELADA"
+_CANCELLATION_HEADING = re.compile(r"^\s*(?:RESERVA CANCELADA|Reserva cancelada)\s*$", re.MULTILINE)
 
 
 class Kind(StrEnum):
@@ -111,12 +114,12 @@ def email_day(received_at: datetime, business_tz: ZoneInfo) -> date:
 
 
 def classify(email: Email) -> Kind:
-    subject = (email.subject or "").strip().lower()
+    subject = _FORWARD_PREFIXES.sub("", (email.subject or "").strip()).lower()
     if subject.startswith(_CANCELLATION_SUBJECT):
         return Kind.CANCELLATION
     if subject.startswith(_CONFIRMATION_SUBJECT):
         return Kind.BOOKING
-    if _CANCELLATION_HEADING in email.body:
+    if _CANCELLATION_HEADING.search(email.body):
         return Kind.CANCELLATION
     return Kind.UNRECOGNIZED
 
