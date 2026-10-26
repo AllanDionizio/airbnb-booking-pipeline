@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1
 # The HTTP service (web.py) under gunicorn: Cloud Run in production,
 # `make serve` locally over the sample inbox.
 
