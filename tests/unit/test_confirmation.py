@@ -102,10 +102,12 @@ def test_usd_amounts_with_nbsp_between_symbol_and_value():
         ("-R$21,00", "R$496,30", "discount"),
     ],
 )
-def test_nightly_price_adjustment_sign_picks_the_field(adjustment, you_receive, expected_field):
-    lines = (
-        f"Preço da acomodação para 2 noites   R$517,30\n\nAjuste de preço por noite   {adjustment}"
-    )
+# A direct email puts the amount beside the label; a forward, on the line below
+@pytest.mark.parametrize("sep", ["   ", "\n\n"], ids=["direct", "forwarded"])
+def test_nightly_price_adjustment_sign_picks_the_field(
+    adjustment, you_receive, expected_field, sep
+):
+    lines = f"Preço da acomodação para 2 noites{sep}R$517,30\n\nAjuste de preço por noite{sep}{adjustment}"
 
     booking = parse_confirmation(
         make_body(payout_lines=lines, you_receive=you_receive),
