@@ -39,6 +39,17 @@ airbnb-pipeline run --gmail
 
 It prints how many emails ended in each code, then the ones a person has to look at (review queue, unmatched or undetermined cancellations, errors). `-v` logs every email.
 
+## Service
+
+[`web.py`](src/airbnb_booking_pipeline/web.py) serves the same run over HTTP, for a container: `GET /` says the service is up, and `POST /sync` runs the pipeline once and answers with the summary as JSON (totals per result code and the emails that need a person). A run that finishes is a `200`, attention items included; Gmail failing is a `502` and the database failing a `503`, both safe to retry. The source is Gmail when the `GOOGLE_*` credentials are set, and the `.eml` files in `INBOX_DIR` otherwise. Every setting is checked at startup, so a missing one stops the container instead of the first sync. `/sync` has no authentication of its own: it is meant to run where the platform checks the caller, such as Cloud Run without public access.
+
+The [`Dockerfile`](Dockerfile) installs the package with its `web` extra (Flask, gunicorn) as a non-root user. `make serve` runs the demo through it:
+
+```bash
+make serve                              # empty database + demo listings, then the app on :8080
+curl -X POST localhost:8080/sync        # the sample inbox; run it twice to see nothing load again
+```
+
 ## Test data
 
 Every email in this repo is synthetic. A small generator in [`src/airbnb_booking_pipeline/synthetic/`](src/airbnb_booking_pipeline/synthetic/) renders Airbnb's Portuguese host email layout from a spec, using fictional listings, `Guest <NATO letter>` names, `HMTEST…` booking codes and made-up amounts. It produces the 20 regression fixtures in [`tests/fixtures/`](tests/fixtures/) (14 confirmations, 6 cancellations), one per layout variant the parsers have to handle: USD amounts, nbsp between symbol and value, stays crossing New Year, discounts and promotions, the "full refund" button that appears in penalty emails, and emails forwarded through Gmail, which rewrites the text part from the HTML into a different layout. Each fixture stores the expected parser output, written by hand.
@@ -80,6 +91,7 @@ make inbox     # regenerate data/sample_inbox/ from the generator
 make db-up             # Postgres on localhost:5433, schema loaded from sql/
 make test-integration  # integration tests against it
 make db-reset          # start over from an empty database
+make serve             # demo database + the app container over the sample inbox
 ```
 
 ## License
