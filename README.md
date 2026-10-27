@@ -161,7 +161,7 @@ CI runs ruff, the unit and regression tests on Python 3.11 and 3.14, the integra
 
 ## About this repo
 
-Built with AI-assisted coding (Claude Code); the architecture, the production debugging and the design decisions are mine.
+Built with AI-assisted coding (Claude Code); the architecture, the production debugging and the design decisions recorded in [`docs/adr/`](docs/adr/) are mine.
 
 ## License
 
