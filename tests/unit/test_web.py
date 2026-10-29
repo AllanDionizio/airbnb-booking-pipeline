@@ -45,7 +45,7 @@ def client(source=None, run=None):
 
 @pytest.fixture(autouse=True)
 def clean_env(monkeypatch):
-    for name in [*SETTINGS, "DATABASE_URL"]:
+    for name in [*SETTINGS, "DATABASE_URL", "BUSINESS_TZ", "USD_BRL_FALLBACK"]:
         monkeypatch.delenv(name, raising=False)
 
 
@@ -144,4 +144,18 @@ def test_no_database_url_is_an_error():
 
 def test_the_app_fails_at_startup_without_settings():
     with pytest.raises(ValueError):
+        create_app()
+
+
+@pytest.mark.parametrize(
+    ("name", "value"), [("BUSINESS_TZ", "America/Sao Paulo"), ("USD_BRL_FALLBACK", "abc")]
+)
+def test_an_optional_setting_that_does_not_parse_fails_at_startup(
+    monkeypatch, tmp_path, name, value
+):
+    monkeypatch.setenv("INBOX_DIR", str(tmp_path))
+    monkeypatch.setenv("DATABASE_URL", "postgresql://nobody@127.0.0.1:1/none")
+    monkeypatch.setenv(name, value)
+
+    with pytest.raises(ValueError, match=name):
         create_app()

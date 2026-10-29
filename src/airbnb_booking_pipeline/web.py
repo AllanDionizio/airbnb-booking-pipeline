@@ -5,8 +5,9 @@ The pipeline over HTTP, for the container: `GET /` says the service is up,
 The emails come from Gmail when any GOOGLE_* credential is set, and from
 the .eml files in INBOX_DIR otherwise, so the container also runs the demo
 without a Google account. Every setting is read when the app is created: a
-missing DATABASE_URL, a missing INBOX_DIR or half the Gmail credentials stop
-the container at startup instead of failing at the first sync.
+missing DATABASE_URL, a missing INBOX_DIR, half the Gmail credentials or a
+BUSINESS_TZ or USD_BRL_FALLBACK that does not parse stop the container at
+startup instead of failing at the first sync.
 
 The status code follows the CLI's exit code. A run that finishes is a 200,
 attention items included. Gmail failing to answer is a 502 and the database
@@ -55,6 +56,7 @@ def run_from_env() -> Run:
     database_url = os.environ.get("DATABASE_URL")
     if not database_url:
         raise ValueError("set DATABASE_URL")
+    runner.check_settings()
     return lambda emails: runner.run_emails(emails, database_url)
 
 

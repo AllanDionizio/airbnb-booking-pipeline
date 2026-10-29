@@ -14,6 +14,7 @@ Network access lives here so the parsers stay pure and testable offline.
 
 import logging
 import os
+import re
 from dataclasses import dataclass, replace
 from datetime import date, timedelta
 
@@ -36,6 +37,20 @@ _TIMEOUT = 10.0
 
 class FxError(RuntimeError):
     """PTAX is unavailable and there is no fallback rate to use instead."""
+
+
+def fallback_rate_from_env() -> float | None:
+    """USD_BRL_FALLBACK ('5,43' or '5.43'), or None when unset; ValueError when it is not a rate."""
+    raw = os.environ.get("USD_BRL_FALLBACK")
+    if not raw:
+        return None
+    # Digits with an optional decimal part: float() alone would read '5_43' as 543
+    if not re.fullmatch(r"\d+([.,]\d+)?", raw.strip()):
+        raise ValueError(f"USD_BRL_FALLBACK is not a rate like 5,43: {raw!r}")
+    rate = float(raw.strip().replace(",", "."))
+    if not rate > 0:
+        raise ValueError(f"USD_BRL_FALLBACK is not a positive number: {raw!r}")
+    return rate
 
 
 @dataclass(frozen=True)
@@ -62,9 +77,8 @@ class PtaxClient:
 
     @classmethod
     def from_env(cls, http: httpx.Client | None = None) -> "PtaxClient":
-        """Take the fallback rate from USD_BRL_FALLBACK ('5,43' or '5.43'), when set."""
-        raw = os.environ.get("USD_BRL_FALLBACK")
-        return cls(http, fallback_rate=float(raw.replace(",", ".")) if raw else None)
+        """Take the fallback rate from USD_BRL_FALLBACK, when set."""
+        return cls(http, fallback_rate=fallback_rate_from_env())
 
     def usd_brl(self, day: date) -> FxRate:
         """The latest PTAX sell rate published on or before `day`."""

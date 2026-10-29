@@ -9,7 +9,7 @@ import pytest
 
 from airbnb_booking_pipeline.enrich import FxError, FxRate
 from airbnb_booking_pipeline.load import CancellationResult, LoadResult
-from airbnb_booking_pipeline.pipeline import Kind, Pipeline, classify
+from airbnb_booking_pipeline.pipeline import Kind, Pipeline, business_tz_from_env, classify
 from airbnb_booking_pipeline.sources import Email
 from airbnb_booking_pipeline.synthetic import render_cancellation, render_confirmation
 from airbnb_booking_pipeline.synthetic.scenarios import CANCELLATIONS, CONFIRMATIONS
@@ -314,3 +314,18 @@ def test_a_database_error_stops_the_run():
 
     with pytest.raises(ConnectionError):
         Pipeline(BrokenStore(), FakeRates(), SAO_PAULO).run([email("simple")])
+
+
+@pytest.mark.parametrize("name", ["America/Sao Paulo", "../etc/passwd"])
+def test_a_business_tz_that_is_not_a_time_zone_is_an_error(monkeypatch, name):
+    monkeypatch.setenv("BUSINESS_TZ", name)
+
+    with pytest.raises(ValueError, match="BUSINESS_TZ"):
+        business_tz_from_env()
+
+
+def test_the_business_tz_error_shows_a_stray_space(monkeypatch):
+    monkeypatch.setenv("BUSINESS_TZ", "America/Sao_Paulo ")
+
+    with pytest.raises(ValueError, match="'America/Sao_Paulo '"):
+        business_tz_from_env()
