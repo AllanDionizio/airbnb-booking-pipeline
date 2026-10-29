@@ -147,7 +147,8 @@ create table pipeline.cancellation_events (
     fx_rate            numeric(10,4),
     fx_quoted_on       date,
     fx_source          text check (fx_source in ('ptax', 'fallback')),
-    -- What the email was matched to, and what was done about it
+    -- What the email was matched to when it was read (pending_cancellations
+    -- matches by code, so a booking loaded later still finds it)
     target             text not null
                        check (target in ('booking', 'review_item', 'already_cancelled', 'not_found')),
     booking_id         bigint references pipeline.bookings,
