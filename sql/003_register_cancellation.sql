@@ -17,7 +17,7 @@
 --   FLAGGED              the booking (draft or confirmed) awaits confirmation
 --   FLAGGED_REVIEW_ITEM  no booking, but an open review-queue item matches
 --   ALREADY_CANCELLED    the booking was cancelled already; event recorded
---   NOT_FOUND            nothing matches the code; event recorded
+--   NOT_FOUND            nothing matches the code yet; event recorded
 
 create or replace function pipeline.register_cancellation(p jsonb)
 returns jsonb
@@ -140,7 +140,10 @@ $$;
 
 
 -- Live bookings with a cancellation email waiting for a person. The newest
--- event wins when Airbnb sends more than one.
+-- event wins when Airbnb sends more than one. Events are matched by
+-- confirmation code, not by the booking_id they were recorded with, so a
+-- cancellation that arrived before its booking (NOT_FOUND, or flagged on a
+-- review-queue item) shows up once the booking exists.
 create or replace view pipeline.pending_cancellations as
 select
     b.booking_id,
@@ -157,7 +160,8 @@ from pipeline.bookings as b
 cross join lateral (
     select *
     from pipeline.cancellation_events as ce
-    where ce.booking_id = b.booking_id
+    where ce.platform = b.platform
+      and ce.confirmation_code = b.confirmation_code
     order by ce.event_id desc
     limit 1
 ) as e
