@@ -13,8 +13,8 @@ Network access lives here so the parsers stay pure and testable offline.
 """
 
 import logging
-import math
 import os
+import re
 from dataclasses import dataclass, replace
 from datetime import date, timedelta
 
@@ -44,12 +44,12 @@ def fallback_rate_from_env() -> float | None:
     raw = os.environ.get("USD_BRL_FALLBACK")
     if not raw:
         return None
-    try:
-        rate = float(raw.replace(",", "."))
-    except ValueError:
-        rate = math.nan
-    if not (math.isfinite(rate) and rate > 0):
-        raise ValueError(f"USD_BRL_FALLBACK is not a positive number: {raw}")
+    # Digits with an optional decimal part: float() alone would read '5_43' as 543
+    if not re.fullmatch(r"\d+([.,]\d+)?", raw.strip()):
+        raise ValueError(f"USD_BRL_FALLBACK is not a rate like 5,43: {raw!r}")
+    rate = float(raw.strip().replace(",", "."))
+    if not rate > 0:
+        raise ValueError(f"USD_BRL_FALLBACK is not a positive number: {raw!r}")
     return rate
 
 

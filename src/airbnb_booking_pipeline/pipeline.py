@@ -121,7 +121,7 @@ def business_tz_from_env() -> ZoneInfo:
     try:
         return ZoneInfo(name)
     except (ZoneInfoNotFoundError, ValueError):
-        raise ValueError(f"BUSINESS_TZ is not a time zone: {name}") from None
+        raise ValueError(f"BUSINESS_TZ is not a time zone: {name!r}") from None
 
 
 def email_day(received_at: datetime, business_tz: ZoneInfo) -> date:

@@ -138,7 +138,7 @@ def test_only_usd_bookings_are_converted():
         convert_booking(brl_booking, FxRate(rate=5.0, quoted_on=date(2026, 7, 1), source="ptax"))
 
 
-@pytest.mark.parametrize("raw", ["abc", "0", "-5,43", "inf"])
+@pytest.mark.parametrize("raw", ["abc", "0", "-5,43", "inf", "5_43", "1,000.50"])
 def test_a_fallback_rate_that_is_not_a_positive_number_is_an_error(monkeypatch, raw):
     monkeypatch.setenv("USD_BRL_FALLBACK", raw)
 

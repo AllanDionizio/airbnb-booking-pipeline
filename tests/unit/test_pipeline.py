@@ -322,3 +322,10 @@ def test_a_business_tz_that_is_not_a_time_zone_is_an_error(monkeypatch, name):
 
     with pytest.raises(ValueError, match="BUSINESS_TZ"):
         business_tz_from_env()
+
+
+def test_the_business_tz_error_shows_a_stray_space(monkeypatch):
+    monkeypatch.setenv("BUSINESS_TZ", "America/Sao_Paulo ")
+
+    with pytest.raises(ValueError, match="'America/Sao_Paulo '"):
+        business_tz_from_env()
