@@ -27,7 +27,7 @@ from dataclasses import asdict, dataclass
 from datetime import date, datetime
 from enum import StrEnum
 from typing import Protocol
-from zoneinfo import ZoneInfo
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from .enrich import FxError, FxRate, convert_booking
 from .load import CancellationResult, LoadResult
@@ -116,7 +116,12 @@ class RateSource(Protocol):
 
 
 def business_tz_from_env() -> ZoneInfo:
-    return ZoneInfo(os.environ.get("BUSINESS_TZ") or DEFAULT_BUSINESS_TZ)
+    """BUSINESS_TZ, or the default when unset; ValueError when it names no time zone."""
+    name = os.environ.get("BUSINESS_TZ") or DEFAULT_BUSINESS_TZ
+    try:
+        return ZoneInfo(name)
+    except (ZoneInfoNotFoundError, ValueError):
+        raise ValueError(f"BUSINESS_TZ is not a time zone: {name}") from None
 
 
 def email_day(received_at: datetime, business_tz: ZoneInfo) -> date:
