@@ -168,6 +168,37 @@ def test_the_newest_email_wins_in_pending_cancellations(conn, booking_id, synthe
     assert pending["outcome"] == "penalty"
 
 
+def test_a_cancellation_that_arrived_before_its_booking_is_pending_once_it_exists(
+    conn, add_listing, synthetic_booking, synthetic_cancellation
+):
+    # The confirmation failed first (say, no FX rate), so the cancellation found nothing
+    add_listing(AURORA)
+    notice = synthetic_cancellation("full_refund", confirmation_code=CODE)
+    assert register_cancellation(conn, notice, message_id="cancel-1").code == "NOT_FOUND"
+
+    # The next run loads the confirmation; the cancellation email is already recorded
+    created = upsert_booking(conn, synthetic_booking("simple"), message_id="confirmation")
+    assert register_cancellation(conn, notice, message_id="cancel-1").code == "ALREADY_PROCESSED"
+
+    [pending] = fetch(conn, "select * from pipeline.pending_cancellations")
+    assert (pending["booking_id"], pending["outcome"]) == (created.booking_id, "full_refund")
+
+
+def test_a_cancellation_on_a_review_item_is_pending_once_the_booking_exists(
+    conn, add_listing, synthetic_booking, synthetic_cancellation
+):
+    upsert_booking(conn, synthetic_booking("simple"), message_id="confirmation")
+    notice = synthetic_cancellation("penalty_compact", confirmation_code=CODE)
+    assert register_cancellation(conn, notice, message_id="cancel-1").code == "FLAGGED_REVIEW_ITEM"
+
+    # A person registers the listing and the booking is loaded from a later email
+    add_listing(AURORA)
+    created = upsert_booking(conn, synthetic_booking("simple"), message_id="confirmation-2")
+
+    [pending] = fetch(conn, "select * from pipeline.pending_cancellations")
+    assert (pending["booking_id"], pending["outcome"]) == (created.booking_id, "penalty")
+
+
 # --- Idempotency ----------------------------------------------------------------
 
 

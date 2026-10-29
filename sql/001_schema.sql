@@ -164,3 +164,7 @@ create table pipeline.cancellation_events (
     check ((target in ('booking', 'already_cancelled')) = (booking_id is not null)),
     check ((target = 'review_item') = (review_id is not null))
 );
+
+-- pending_cancellations looks events up by code: one can arrive before its booking
+create index cancellation_events_code_idx
+    on pipeline.cancellation_events (platform, confirmation_code);
