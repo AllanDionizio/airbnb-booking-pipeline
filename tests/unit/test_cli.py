@@ -64,3 +64,18 @@ def test_gmail_failing_to_answer_exits_with_1_and_one_line(monkeypatch, fake_gma
     err = capsys.readouterr().err
     assert err.startswith("airbnb-pipeline: Google refused the refresh token")
     assert err.count("\n") == 1
+
+
+@pytest.mark.parametrize(
+    ("name", "value"), [("BUSINESS_TZ", "America/Sao Paulo"), ("USD_BRL_FALLBACK", "abc")]
+)
+def test_an_optional_setting_that_does_not_parse_fails_before_connecting(
+    tmp_path, monkeypatch, capsys, name, value
+):
+    monkeypatch.setenv(name, value)
+
+    with pytest.raises(SystemExit) as exit_info:
+        cli.main(["run", "--inbox", str(tmp_path), "--database-url", NO_DATABASE])
+
+    assert exit_info.value.code == 2
+    assert name in capsys.readouterr().err

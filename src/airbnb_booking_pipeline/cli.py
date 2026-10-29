@@ -73,6 +73,7 @@ def main(argv: list[str] | None = None, out: TextIO = sys.stdout) -> int:
     )
 
     try:
+        runner.check_settings()
         source = GmailSource.from_env() if args.gmail else LocalSource(args.inbox)
         emails = source.fetch()
     except (FileNotFoundError, ValueError) as exc:  # a missing inbox or setting

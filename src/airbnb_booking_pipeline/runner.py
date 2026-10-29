@@ -4,10 +4,19 @@ from collections.abc import Iterable
 
 import psycopg
 
-from .enrich import PtaxClient
+from .enrich import PtaxClient, fallback_rate_from_env
 from .load import PostgresStore
 from .pipeline import Pipeline, RunReport, business_tz_from_env
 from .sources import Email
+
+
+def check_settings() -> None:
+    """
+    Read the optional settings a run uses (BUSINESS_TZ, USD_BRL_FALLBACK), so
+    one that does not parse raises ValueError before any email is read.
+    """
+    business_tz_from_env()
+    fallback_rate_from_env()
 
 
 def run_emails(emails: Iterable[Email], database_url: str) -> RunReport:
