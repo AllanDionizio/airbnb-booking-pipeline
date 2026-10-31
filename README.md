@@ -9,9 +9,9 @@ Airbnb tells a host about every booking and every cancellation by email, in a la
 
 Built for and run in production at a short-term rental management company operating a multi-property Airbnb portfolio. Validated against hundreds of real host emails. This repo is a clean-room rewrite for publication: the code was written again from scratch, and every email, listing, guest and amount in it is synthetic.
 
-- **Idempotent per email.** A ledger keyed by `Message-ID` means replaying a whole mailbox loads nothing new, and an old email never rolls back a newer update.
-- **Rules live in Postgres.** Two plpgsql functions decide what each email does and answer with a result code; exclusion constraints block double bookings at the database level.
-- **Nothing is dropped in silence.** Unknown listings, double bookings and stays without a contract wait in a review queue with their full payload; an unrecognized email or an unknown payout line is reported, not skipped.
+- **Idempotent per email.** A ledger keyed by `Message-ID` means replaying a whole mailbox loads nothing new, and replaying an old email never rolls back a newer update.
+- **Rules live in Postgres.** Two plpgsql functions decide what each email does and answer with a result code; an exclusion constraint backs the double-booking check at the database level.
+- **Problem emails are kept, not dropped.** Unknown listings, double bookings and stays without a contract wait in a review queue with their full payload; an unrecognized email or an unknown payout line is reported, not skipped.
 - **A person confirms cancellations.** The pipeline flags the booking and never cancels it on its own.
 - **Tested against the real layouts.** Synthetic fixtures copy the structure of real emails, with the expected output written by hand; CI runs integration tests against Postgres and builds the container.
 
@@ -47,7 +47,7 @@ flowchart LR
     events --> pending[["pending_cancellations<br/>(a person confirms)"]]
 ```
 
-[`pipeline.py`](src/airbnb_booking_pipeline/pipeline.py) runs each email through the same steps: route it by subject (a cancellation without a subject is recognized by its body), parse it, convert USD amounts with the PTAX rate of the day the email arrived in `BUSINESS_TZ` (default `America/Sao_Paulo`), and load it. Emails are processed oldest first, so a newer email for the same booking wins.
+[`pipeline.py`](src/airbnb_booking_pipeline/pipeline.py) runs each email through the same steps: route it by subject (a cancellation without a subject is recognized by its body), parse it, convert USD amounts with the PTAX rate of the day the email arrived in `BUSINESS_TZ` (default `America/Sao_Paulo`), and load it. Within a run, emails are processed oldest first, so a newer email for the same booking wins. Across runs the order is the order they were read: an older email that only shows up in a later run (a backfill through `--inbox`, say) overwrites a booking still in `draft` with its older data.
 
 Every email ends with a result code: the database's codes below, or one of three the pipeline sets itself when the email never reaches the database (`UNRECOGNIZED`, `PARSE_ERROR`, `FX_ERROR`). A bad email is reported and the run goes on; a database error stops the run, and rerunning is safe because every email is idempotent.
 
