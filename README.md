@@ -97,7 +97,7 @@ Every email in this repo is synthetic. A small generator in [`synthetic/`](src/a
 
 ## Demo
 
-`make demo` starts Postgres from an empty volume, loads the demo listings and contracts ([`data/demo_seed.sql`](data/demo_seed.sql)) and runs the pipeline over [`data/sample_inbox/`](data/sample_inbox/): 22 synthetic emails from a few months of a host's mailbox. The inbox is built to reach every result code: bookings in BRL and USD, a double booking, a stay after its owner contract ends, a listing nobody registered, cancellations with and without a penalty, one for a booking that is still in the review queue, one for a booking older than the inbox, a payout line the parser has never seen and a guest message. The run ends with this summary:
+`make demo` starts Postgres from an empty volume, loads the demo listings and contracts ([`data/demo_seed.sql`](data/demo_seed.sql)) and runs the pipeline over [`data/sample_inbox/`](data/sample_inbox/): 22 synthetic emails from a few months of a host's mailbox: bookings in BRL and USD, a double booking, a stay after its owner contract ends, a listing nobody registered, cancellations with and without a penalty, one for a booking that is still in the review queue, one for a booking older than the inbox, a payout line the parser has never seen and a guest message. The run ends with this summary:
 
 ```text
 22 emails processed
@@ -112,7 +112,7 @@ Every email in this repo is synthetic. A small generator in [`synthetic/`](src/a
   unrecognized  UNRECOGNIZED                1
 ```
 
-followed by the 10 emails that need a person. Run `airbnb-pipeline run --inbox data/sample_inbox` again and every email that reached the database comes back as `ALREADY_PROCESSED`, with no new rows. The USD bookings use the live PTAX rate, so they need network access (or `USD_BRL_FALLBACK`).
+followed by the 10 emails that need a person. Run `airbnb-pipeline run --inbox data/sample_inbox` again and every email that reached the database comes back as `ALREADY_PROCESSED`, with no new rows. The demo shows the codes a host's mailbox runs into most; the rest (`UPDATED`, `ALREADY_EXISTS`, `ALREADY_CANCELLED`, `INVALID_PAYLOAD`, `FX_ERROR`) are covered by the unit and integration tests. The USD bookings use the live PTAX rate, so they need network access (or `USD_BRL_FALLBACK`).
 
 ## How it ran in production
 
