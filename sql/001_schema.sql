@@ -96,8 +96,9 @@ create table pipeline.bookings (
 
 
 -- Quarantine: emails that parsed fine but cannot become a booking without a
--- person. The original payload is kept so the email can be replayed once
--- the cause is fixed (listing registered, contract added, conflict solved).
+-- person. The original payload is kept so the booking can be loaded from it
+-- once the cause is fixed (listing registered, contract added, conflict
+-- solved). Replaying the email itself returns ALREADY_PROCESSED.
 create table pipeline.booking_review_queue (
     review_id                bigint generated always as identity primary key,
     reason                   text not null
