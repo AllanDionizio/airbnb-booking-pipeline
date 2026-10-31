@@ -9,6 +9,14 @@ Airbnb tells a host about every booking and every cancellation by email, in a la
 
 Built for and run in production at a short-term rental management company operating a multi-property Airbnb portfolio. Validated against hundreds of real host emails. This repo is a clean-room rewrite for publication: the code was written again from scratch, and every email, listing, guest and amount in it is synthetic.
 
+- **Idempotent per email.** A ledger keyed by `Message-ID` means replaying a whole mailbox loads nothing new, and an old email never rolls back a newer update.
+- **Rules live in Postgres.** Two plpgsql functions decide what each email does and answer with a result code; exclusion constraints block double bookings at the database level.
+- **Nothing is dropped in silence.** Unknown listings, double bookings and stays without a contract wait in a review queue with their full payload; an unrecognized email or an unknown payout line is reported, not skipped.
+- **A person confirms cancellations.** The pipeline flags the booking and never cancels it on its own.
+- **Tested against the real layouts.** Synthetic fixtures copy the structure of real emails, with the expected output written by hand; CI runs integration tests against Postgres and builds the container.
+
+**Stack:** Python 3.11+ · Postgres 16 (plpgsql) · psycopg 3 · httpx · Gmail API · Flask + gunicorn · Docker · GitHub Actions · pytest
+
 ## Quickstart
 
 ```bash
