@@ -2,7 +2,7 @@
 The demo inbox: data/sample_inbox/, a few months of a host's mailbox as .eml files.
 
 Where the regression fixtures cover the layouts, the inbox tells a story
-that walks every path of the pipeline. With the listings and contracts of
+through the main paths of the pipeline. With the listings and contracts of
 data/demo_seed.sql it produces:
 
   - bookings that load as drafts, in BRL and in USD;
@@ -17,6 +17,10 @@ data/demo_seed.sql it produces:
   - a payout line the parser does not know (PARSE_ERROR), the way a new
     Airbnb template would first show up;
   - a guest message, which is neither email type (UNRECOGNIZED).
+
+A second run adds ALREADY_PROCESSED. The other result codes (UPDATED,
+ALREADY_EXISTS, ALREADY_CANCELLED, INVALID_PAYLOAD, FX_ERROR) are left to
+the unit and integration tests.
 
 Regenerate with `make inbox`; a test fails when the committed files drift.
 """

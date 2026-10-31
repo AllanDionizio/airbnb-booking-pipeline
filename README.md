@@ -9,6 +9,14 @@ Airbnb tells a host about every booking and every cancellation by email, in a la
 
 Built for and run in production at a short-term rental management company operating a multi-property Airbnb portfolio. Validated against hundreds of real host emails. This repo is a clean-room rewrite for publication: the code was written again from scratch, and every email, listing, guest and amount in it is synthetic.
 
+- **Idempotent per email.** A ledger keyed by `Message-ID` means replaying a whole mailbox loads nothing new, and replaying an old email never rolls back a newer update.
+- **Rules live in Postgres.** Two plpgsql functions decide what each email does and answer with a result code; an exclusion constraint backs the double-booking check at the database level.
+- **Problem emails are queued or reported, not dropped.** Unknown listings, double bookings and stays without a contract wait in a review queue with their full payload; an unrecognized email or an unknown payout line is reported, not skipped.
+- **A person confirms cancellations.** The pipeline flags the booking and never cancels it on its own.
+- **Tested against the real layouts.** Synthetic fixtures copy the structure of real emails, with the expected output written by hand; CI runs integration tests against Postgres and builds the container.
+
+**Stack:** Python 3.11+ · Postgres 16 (plpgsql) · psycopg 3 · httpx · Gmail API · Flask + gunicorn · Docker · GitHub Actions · pytest
+
 ## Quickstart
 
 ```bash
@@ -39,7 +47,7 @@ flowchart LR
     events --> pending[["pending_cancellations<br/>(a person confirms)"]]
 ```
 
-[`pipeline.py`](src/airbnb_booking_pipeline/pipeline.py) runs each email through the same steps: route it by subject (a cancellation without a subject is recognized by its body), parse it, convert USD amounts with the PTAX rate of the day the email arrived in `BUSINESS_TZ` (default `America/Sao_Paulo`), and load it. Emails are processed oldest first, so a newer email for the same booking wins.
+[`pipeline.py`](src/airbnb_booking_pipeline/pipeline.py) runs each email through the same steps: route it by subject (a cancellation without a subject is recognized by its body), parse it, convert USD amounts with the PTAX rate of the day the email arrived in `BUSINESS_TZ` (default `America/Sao_Paulo`), and load it. Within a run, emails are processed oldest first, so a newer email for the same booking wins. Across runs the order is the order they were read: an older email that only shows up in a later run (a backfill through `--inbox`, say) overwrites a booking still in `draft` with its older data.
 
 Every email ends with a result code: the database's codes below, or one of three the pipeline sets itself when the email never reaches the database (`UNRECOGNIZED`, `PARSE_ERROR`, `FX_ERROR`). A bad email is reported and the run goes on; a database error stops the run, and rerunning is safe because every email is idempotent.
 
@@ -63,7 +71,7 @@ Postgres 16, defined in [`sql/`](sql/) and started with Docker Compose. Bookings
 | `QUEUED_UNKNOWN_LISTING` / `QUEUED_NO_CONTRACT` / `QUEUED_OVERLAP` | Sent to `booking_review_queue` with the original payload, for a person to resolve |
 | `INVALID_PAYLOAD` | Malformed input; nothing is written, so the email can be retried |
 
-Cancellation emails go through [`pipeline.register_cancellation(jsonb)`](sql/003_register_cancellation.sql), which records each one in `cancellation_events` and matches it to its booking, or to an open review-queue item when the confirmation is still waiting there. A cancellation that arrives before its booking is kept, and it shows up in `pending_cancellations` once the booking is loaded (the run that loads the booking does not flag it again). The pipeline never cancels anything: it flags the booking, and a person confirms the cancellation from the `pending_cancellations` view. A penalty is stored as the email states it and in BRL (USD at the PTAX rate). Full refunds carry no amount and no currency.
+Cancellation emails go through [`pipeline.register_cancellation(jsonb)`](sql/003_register_cancellation.sql), which records each one in `cancellation_events` and matches it to its booking, or to an open review-queue item when the confirmation is still waiting there. It answers `FLAGGED` (a booking awaits a person), `FLAGGED_REVIEW_ITEM` (only an open review-queue item matches), `ALREADY_CANCELLED` (the booking was cancelled already) or `NOT_FOUND` (nothing matches yet), and, like `upsert_booking`, `ALREADY_PROCESSED` or `INVALID_PAYLOAD`. The event is recorded in every case but the last two. A cancellation that arrives before its booking is kept, and it shows up in `pending_cancellations` once the booking is loaded (the run that loads the booking does not flag it again). The pipeline never cancels anything: it flags the booking, and a person confirms the cancellation from the `pending_cancellations` view. A penalty is stored as the email states it and in BRL (USD at the PTAX rate). Full refunds carry no amount and no currency.
 
 Idempotency is per email (`processed_messages` for confirmations, `cancellation_events` for cancellations), so replaying an old email never rolls back a newer update. Two exclusion constraints back the rules up: no two live bookings of a listing share a night, and no listing has two contracts in force on the same day. `host_payout` is a generated column, derived from the payout lines.
 
@@ -97,7 +105,7 @@ Every email in this repo is synthetic. A small generator in [`synthetic/`](src/a
 
 ## Demo
 
-`make demo` starts Postgres from an empty volume, loads the demo listings and contracts ([`data/demo_seed.sql`](data/demo_seed.sql)) and runs the pipeline over [`data/sample_inbox/`](data/sample_inbox/): 22 synthetic emails from a few months of a host's mailbox. The inbox is built to reach every result code: bookings in BRL and USD, a double booking, a stay after its owner contract ends, a listing nobody registered, cancellations with and without a penalty, one for a booking that is still in the review queue, one for a booking older than the inbox, a payout line the parser has never seen and a guest message. The run ends with this summary:
+`make demo` starts Postgres from an empty volume, loads the demo listings and contracts ([`data/demo_seed.sql`](data/demo_seed.sql)) and runs the pipeline over [`data/sample_inbox/`](data/sample_inbox/): 22 synthetic emails from a few months of a host's mailbox: bookings in BRL and USD, a double booking, a stay after its owner contract ends, a listing nobody registered, cancellations with and without a penalty, one for a booking that is still in the review queue, one for a booking older than the inbox, a payout line the parser has never seen and a guest message. The run ends with this summary:
 
 ```text
 22 emails processed
@@ -112,7 +120,7 @@ Every email in this repo is synthetic. A small generator in [`synthetic/`](src/a
   unrecognized  UNRECOGNIZED                1
 ```
 
-followed by the 10 emails that need a person. Run `airbnb-pipeline run --inbox data/sample_inbox` again and every email that reached the database comes back as `ALREADY_PROCESSED`, with no new rows. The USD bookings use the live PTAX rate, so they need network access (or `USD_BRL_FALLBACK`).
+followed by the 10 emails that need a person. Run `airbnb-pipeline run --inbox data/sample_inbox` again and every email that reached the database comes back as `ALREADY_PROCESSED`, with no new rows. The demo walks the main paths; the other codes (`UPDATED`, `ALREADY_EXISTS`, `ALREADY_CANCELLED`, `INVALID_PAYLOAD`, `FX_ERROR`) are covered by the unit and integration tests. The USD bookings use the live PTAX rate, so they need network access (or `USD_BRL_FALLBACK`).
 
 ## How it ran in production
 
@@ -140,6 +148,10 @@ The rewrite also changed a few things on purpose:
 - **Forwarded emails take the forwarding date.** The parser infers the stay's year from the email date, and the pipeline picks the PTAX day from it. For a forward, that is the day it was forwarded, not the day Airbnb sent it, so a forward sent long after the booking can land on the wrong year or rate.
 - **The default Gmail search does not match forwards.** It looks for emails from Airbnb's sender address, and a forward comes from the person who forwarded it. Forwards go in through `--inbox` or a custom `GMAIL_QUERY`.
 - **Airbnb, in Portuguese, only.** The parsers read the pt-BR host layout. An email in another language comes back as `UNRECOGNIZED`, and other booking channels are out of scope.
+- **The back-office steps are SQL by hand.** In production a person resolved the review queue and confirmed cancellations in the company's back office. This repo keeps the queue and the `pending_cancellations` view but not that tool. Resolving an item means loading the booking from the item's stored `payload` (for instance through `pipeline.upsert_booking` under a new `message_id`, because replaying the email answers `ALREADY_PROCESSED`) and then setting the item to `resolved`, or to `discarded` ([ADR 0003](docs/adr/0003-quarantine-over-discard.md)). Confirming a cancellation means setting the booking's status to `cancelled`, replacing its amounts with the penalty if there is one.
+- **Amounts are floats until Postgres.** The parsers read amounts as Python `float`, and the payout check allows a one-cent difference. The lines of a USD booking are converted and rounded to cents one by one in Python (a USD penalty is converted in Postgres), so the BRL payout, which is the sum of the lines, can differ by a few cents from the converted total. Postgres stores every amount as `numeric(12,2)`. `Decimal` from the parser on would make the check exact.
+- **Two runs at once do not wait for each other.** Nothing serializes runs, so two overlapping `POST /sync` calls (or the CLI next to the service) can reach the same email together. Each email is its own transaction: one run loads it, and the other finds it `ALREADY_PROCESSED` or, if both got there at the same moment, stops on a database error (`503`, or exit code 1 from the CLI). Nothing is written twice, and the stopped run is safe to repeat.
+- **`num_guests` counts adults only.** The parser reads the number of adults in the email's guests line; children and infants are not counted, although the column name suggests the total.
 
 ## Development
 
