@@ -2,8 +2,8 @@
 The demo inbox: data/sample_inbox/, a few months of a host's mailbox as .eml files.
 
 Where the regression fixtures cover the layouts, the inbox tells a story
-through the paths a host's mailbox runs into most. With the listings and
-contracts of data/demo_seed.sql it produces:
+through the main paths of the pipeline. With the listings and contracts of
+data/demo_seed.sql it produces:
 
   - bookings that load as drafts, in BRL and in USD;
   - a double booking on Casa Cedro (QUEUED_OVERLAP);
